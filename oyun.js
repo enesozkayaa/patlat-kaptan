@@ -365,10 +365,10 @@ const Oyun = (() => {
     const k = b.t > a.t ? Math.max(0, Math.min(1, (rt - a.t) / (b.t - a.t))) : 1;
     const tk = [];
     for (let t = 0; t < oyun.tekneSay; t++) {
-      const j = t * 11, A = a.tk, B = b.tk;
+      const j = t * 14, A = a.tk, B = b.tk;
       const atla = Math.hypot(B[j] - A[j], B[j + 1] - A[j + 1]) > 8;   // yeniden doğma: atla
       const kk = atla ? 1 : k;
-      tk.push({ x: lerp(A[j], B[j], kk), z: lerp(A[j + 1], B[j + 1], kk), y: lerp(A[j + 2], B[j + 2], kk), yaw: acisal(A[j + 3], B[j + 3], kk), egX: lerp(A[j + 4], B[j + 4], kk), egZ: lerp(A[j + 5], B[j + 5], kk), hav: B[j + 6], i: B[j + 7], cp: B[j + 8], devrik: B[j + 9], salla: lerp(A[j + 10], B[j + 10], kk) });
+      tk.push({ x: lerp(A[j], B[j], kk), z: lerp(A[j + 1], B[j + 1], kk), y: lerp(A[j + 2], B[j + 2], kk), yaw: acisal(A[j + 3], B[j + 3], kk), egX: lerp(A[j + 4], B[j + 4], kk), egZ: lerp(A[j + 5], B[j + 5], kk), hav: B[j + 6], i: B[j + 7], cp: B[j + 8], devrik: B[j + 9], salla: lerp(A[j + 10], B[j + 10], kk), ex: lerp(A[j + 11], B[j + 11], kk), ez: lerp(A[j + 12], B[j + 12], kk), batma: lerp(A[j + 13], B[j + 13], kk) });
     }
     const op = new Map(), oa = new Map();
     for (let j = 0; j < a.o.length; j += 9) oa.set(a.o[j], j);
@@ -381,12 +381,13 @@ const Oyun = (() => {
   const yerel2dunya = (b, lx, lz) => { const c = Math.cos(b.yaw), s = Math.sin(b.yaw); return { x: b.x + lx * c + lz * s, z: b.z - lx * s + lz * c }; };
   const dunya2yerel = (b, x, z) => { const wx = x - b.x, wz = z - b.z, c = Math.cos(b.yaw), s = Math.sin(b.yaw); return { lx: wx * c - wz * s, lz: wx * s + wz * c }; };
   const guverte = (b, lx, lz) => b.y + 0.25 - (lx * b.egX + lz * b.egZ) * 0.07;
-  const tutunmaY = b => b.y - 0.32;   // kenara tutunan: suyun içinde, başı dışarıda
+  // Kenara tutunan: suyun içinde, başı dışarıda. Tekne yan yatınca tutunduğu kenarla birlikte iner/kalkar
+  const tutunmaY = (b, lx = 0, lz = 0) => b.y + b.batma - 0.32 - Math.max(-1.6, Math.min(1.6, (lx * Math.sin(b.ex) + lz * Math.sin(b.ez))));
   function benDunya() {
     if (!ben) return { x: 0, y: 0, z: 0 };
     if (ben.d !== 'gemi') return { x: ben.x, y: ben.y, z: ben.z };
     const b = anlikTekne(oyun.benim.tekne); if (!b) return { x: ben.x, y: ben.y, z: ben.z };
-    return { x: b.x + ben.lx, y: tutunmaY(b), z: b.z + ben.lz };
+    return { x: b.x + ben.lx, y: tutunmaY(b, ben.lx, ben.lz), z: b.z + ben.lz };
   }
 
   // ---------- Suya düşme, yüzme, binme ----------
@@ -521,7 +522,7 @@ const Oyun = (() => {
         let yeni = ang + v * dt / R_TUT;
         arkadasAcilari().forEach(x => { const once = Math.abs(aciFark(x, ang)), sonra = Math.abs(aciFark(x, yeni)); if (sonra < ARA && sonra < once) yeni = ang; });
         ben.lx = Math.sin(yeni) * R_TUT; ben.lz = Math.cos(yeni) * R_TUT;
-        ben.x = b.x + ben.lx; ben.z = b.z + ben.lz; ben.y = tutunmaY(b);
+        ben.x = b.x + ben.lx; ben.z = b.z + ben.lz; ben.y = tutunmaY(b, ben.lx, ben.lz);
         ben.yaw = Math.atan2(b.x - ben.x, b.z - ben.z);   // yüzü teknenin ortasına
       } else { ben.yaw = kamYaw; suAdim(dt, mx, mz); }
       osurAdim(dt);
@@ -530,10 +531,17 @@ const Oyun = (() => {
     // Tekneler
     oyun.tekneObj.forEach((g, t) => {
       const b = a.tk[t]; const u = g.userData;
-      g.position.set(b.x, b.hav === 2 ? b.y - 0.8 : b.y, b.z); g.rotation.y = b.yaw;
-      const ec = Math.cos(b.yaw), es = Math.sin(b.yaw), eX = b.egX * ec - b.egZ * es, eZ = b.egX * es + b.egZ * ec;
-      const hedefZ = b.devrik ? Math.PI : -eX * 0.2 + b.salla * 0.18, hedefX = eZ * 0.2;
-      u.ic.rotation.z += (hedefZ - u.ic.rotation.z) * Math.min(1, dt * 6); u.ic.rotation.x += (hedefX - u.ic.rotation.x) * Math.min(1, dt * 6);
+      const dalga = b.hav === 1 ? 0 : Math.sin(performance.now() / 700 + t * 2) * 0.04;          // suda hafif inip kalkma
+      g.position.set(b.x, b.y + b.batma + dalga, b.z); g.rotation.y = b.yaw;
+      // eğim dünya yönünde geliyor (ağırlık + düşüş/çarpma yatması): teknenin kendi eksenine çevir
+      const ec = Math.cos(b.yaw), es = Math.sin(b.yaw);
+      const wX = b.egX * 0.2 + Math.sin(b.ex), wZ = b.egZ * 0.2 + Math.sin(b.ez);
+      const eX = wX * ec - wZ * es, eZ = wX * es + wZ * ec;
+      const buyuk = Math.hypot(b.ex, b.ez) > 0.15;
+      const hedefZ = b.devrik ? Math.PI : -(buyuk ? Math.asin(Math.max(-1, Math.min(1, eX))) : eX) + b.salla * 0.18;
+      const hedefX = buyuk ? Math.asin(Math.max(-1, Math.min(1, eZ))) : eZ;
+      const hiz = Math.min(1, dt * (buyuk || b.hav ? 18 : 6));
+      u.ic.rotation.z += (hedefZ - u.ic.rotation.z) * hiz; u.ic.rotation.x += (hedefX - u.ic.rotation.x) * hiz;
       u.ic.position.y = b.devrik ? 0.3 : 0;
       u.bayrak.rotation.y = Math.sin(performance.now() / 300 + t) * 0.3;
     });
@@ -545,7 +553,7 @@ const Oyun = (() => {
       if (benMi) { x = ben.x; y = ben.y; z = ben.z; yaw = ben.yaw; d = ben.d === 'gemi' ? 0 : 1; fis = ben.osuruyor ? 1 : 0; bas = ben.gaz; }
       else {
         d = o.d; yaw = o.yaw; fis = o.fis; bas = o.bas;
-        if (d === 0) { const b = a.tk[o.tekne]; x = b.x + o.a; z = b.z + o.b; y = tutunmaY(b); yaw = Math.atan2(b.x - x, b.z - z); }
+        if (d === 0) { const b = a.tk[o.tekne]; x = b.x + o.a; z = b.z + o.b; y = tutunmaY(b, o.a, o.b); yaw = Math.atan2(b.x - x, b.z - z); }
         else { x = o.a; z = o.b; y = o.y; }
       }
       const hiz = Math.hypot(x - v.x, z - v.z) / Math.max(dt, 0.001);
