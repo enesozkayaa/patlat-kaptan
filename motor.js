@@ -8,10 +8,12 @@ const Motor = (() => {
   const P = typeof Pist !== 'undefined' ? Pist : require('./pist.js');
   const DT = 0.05;
   const BR = 1.75;                 // tekne yarıçapı
+  const R_TUT = BR + 0.45;         // oyuncular teknenin DIŞINDA, kenara tutunur (bu yarıçapta)
+  const BR_DIS = 2.2;              // tutunanlarla birlikte teknenin dış yarıçapı (çarpışmalar)
   const FIS = 8;                   // bir osuruğun itme gücü (basılı tuttukça sürer)
   const SURUK = 0.55, SURUK2 = 0.06, DONUS_SURUK = 2.0;
   const GERI_SAYIM = 3.5;
-  const DEVRIL_ORAN = 0.62, DEVRIL_SURE = 1.2, DEVRIK_KAL = 2.6;
+  const DEVRIL_ORAN = 0.97, DEVRIL_SURE = 1.2, DEVRIK_KAL = 2.6;
   const KONI_BOY = 4.5, KONI_ACI = Math.cos(36 * Math.PI / 180);
   let o = null, cb = null, zaman = null;
 
@@ -29,7 +31,7 @@ const Motor = (() => {
     // Teknede herkese ayrı bir başlangıç yeri
     o.tekneler.forEach(b => {
       const ekip = o.oyuncular.filter(p => p.tekne === b.no);
-      ekip.forEach((p, j) => { const a = (j / Math.max(1, ekip.length)) * Math.PI * 2; const r = ekip.length > 1 ? 0.8 : 0; p.lx = Math.sin(a) * r; p.lz = -Math.cos(a) * r; p.yaw = b.yaw; });
+      ekip.forEach((p, j) => { const a = b.yaw + Math.PI + (j - (ekip.length - 1) / 2) * 0.75; p.lx = Math.sin(a) * R_TUT; p.lz = Math.cos(a) * R_TUT; p.yaw = b.yaw; });
     });
     cb.herkese({ tip: 'basla', oyuncular: o.oyuncular.map(p => ({ id: p.id, ad: p.ad, no: p.no, tekne: p.tekne, lx: p.lx, lz: p.lz })), tekneSay, ayar: o.ayar });
     if (!secenek.elle) {
@@ -45,10 +47,11 @@ const Motor = (() => {
 
   const ekipBul = b => o.oyuncular.filter(p => !p.cikti && p.tekne === b.no && p.d === 'gemi');
   const dunya = (b, lx, lz) => { const c = Math.cos(b.yaw), s = Math.sin(b.yaw); return { x: b.x + lx * c + lz * s, z: b.z - lx * s + lz * c }; };
+  // Tutunanın yeri teknenin dönüşünden bağımsız: lx, lz dünya yönünde ofset (arkadaysan arkada kalırsın)
   function oyuncuDunya(p) {
     if (p.d !== 'gemi') return { x: p.x, z: p.z, y: p.y };
-    const b = o.tekneler[p.tekne], w = dunya(b, p.lx, p.lz);
-    return { x: w.x, z: w.z, y: b.y };
+    const b = o.tekneler[p.tekne];
+    return { x: b.x + p.lx, z: b.z + p.lz, y: b.y };
   }
 
   function adim() {
@@ -75,12 +78,11 @@ const Motor = (() => {
       const b = o.tekneler[p.tekne];
       if (b.devrik > 0 || b.gol > 0) continue;
       const F = FIS;
-      const fx = Math.sin(p.yaw), fz = Math.cos(p.yaw);
-      // Tekne ileri itilir; merkezde değilsen döner de
-      const c = Math.cos(b.yaw), s = Math.sin(b.yaw);
-      const rx = p.lx * c + p.lz * s, rz = -p.lx * s + p.lz * c;
+      // Oyuncu kenara tutunmuş, yüzü teknenin ortasına dönük: tekne oyuncunun KARŞI tarafına itilir
+      const rx = p.lx, rz = p.lz, rl = Math.hypot(rx, rz) || 1;
+      const fx = -rx / rl, fz = -rz / rl;
       b.fx += fx * F; b.fz += fz * F;
-      b.tork += (rz * fx - rx * fz) * F;
+      b.tork += (Math.random() - 0.5) * 0.3;
       b.sallaV += (Math.random() - 0.5) * 0.25;
       // Gaz arkaya çıkar: arkadakileri ve arkadaki tekneleri iter
       const ox = b.x + rx, oz = b.z + rz;
@@ -95,9 +97,9 @@ const Motor = (() => {
       for (const ob of o.tekneler) {
         if (ob === b || ob.gol > 0 || Math.abs(ob.y - b.y) > 2) continue;
         const dx = ob.x - ox, dz = ob.z - oz, ileri = -(dx * fx + dz * fz);
-        if (ileri < 0 || ileri > KONI_BOY + BR) continue;
+        if (ileri < 0 || ileri > KONI_BOY + BR_DIS) continue;
         const yan = Math.abs(dx * fz - dz * fx);
-        if (yan > BR + ileri * 0.6) continue;
+        if (yan > BR_DIS + ileri * 0.6) continue;
         ob.fx -= fx * F * 0.55; ob.fz -= fz * F * 0.55;
         ob.tork += (Math.random() - 0.5) * F * 0.6;
       }
@@ -172,14 +174,15 @@ const Motor = (() => {
     }
     b.vx += ax * DT; b.vz += az * DT;
     b.x += b.vx * DT; b.z += b.vz * DT; b.yaw += b.w * DT;
+    if (Math.hypot(b.vx, b.vz) > 0.8) { let d = Math.atan2(b.vx, b.vz) - b.yaw; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; b.yaw += d * Math.min(1, DT * 1.5); }
 
     const s = P.bul(b.x, b.z, b.y, b.i);
     if (!s) return;
     b.i = s.i; b.y = s.y;
     const q = P.P[s.i];
     // Pistin başı (iskele) ve sonu (zirve duvarı)
-    if (s.i === 0 && s.a < BR + 0.2) { const f = BR + 0.2 - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt < 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
-    if (s.i === P.N - 1 && s.a > -BR) { const f = -BR - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt > 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
+    if (s.i === 0 && s.a < BR_DIS + 0.2) { const f = BR_DIS + 0.2 - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt < 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
+    if (s.i === P.N - 1 && s.a > -BR_DIS) { const f = -BR_DIS - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt > 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
     // Kenarlarda korkuluk yok: dışarı savrulan alttaki nehre, içeri düşen göle düşer
     if (Math.abs(s.d) > P.YARI - 0.35) {
       const yon = Math.sign(s.d);
@@ -191,7 +194,7 @@ const Motor = (() => {
     // Kayalar
     for (const k of P.KAYALAR) {
       if (Math.abs(k.y - b.y) > 2) continue;
-      const dx = b.x - k.x, dz = b.z - k.z, d = Math.hypot(dx, dz), en = BR + k.r;
+      const dx = b.x - k.x, dz = b.z - k.z, d = Math.hypot(dx, dz), en = BR_DIS + k.r;
       if (d >= en || d < 0.001) continue;
       const nx = dx / d, nz = dz / d, vn = b.vx * nx + b.vz * nz;
       b.x += nx * (en - d); b.z += nz * (en - d);
@@ -206,8 +209,7 @@ const Motor = (() => {
 
     // Eğilme: herkes bir tarafa toplanırsa tekne yatar, fazlası devrilir
     let sx = 0, sz = 0; ekip.forEach(p => { sx += p.lx; sz += p.lz; });
-    const bolen = 2.5 + n;
-    b.egX = sx / bolen; b.egZ = sz / bolen;
+    b.egX = sx / (R_TUT * 4); b.egZ = sz / (R_TUT * 4);   // 4 kişi aynı yerde = 1
     b.sallaV += (-b.salla * 30) * DT; b.sallaV *= Math.exp(-3 * DT); b.salla += b.sallaV * DT * 10;
     const oran = Math.hypot(b.egX, b.egZ) + Math.abs(b.salla) * 0.5;
     if (b.devrik <= 0 && n > 0 && oran > DEVRIL_ORAN) {
@@ -233,8 +235,8 @@ const Motor = (() => {
       const A = T[a], B = T[c];
       if (A.gol > 0 || B.gol > 0 || A.hav || B.hav || Math.abs(A.y - B.y) > 2) continue;
       const dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
-      if (d >= BR * 2 || d < 0.001) continue;
-      const nx = dx / d, nz = dz / d, it = (BR * 2 - d) / 2;
+      if (d >= BR_DIS * 2 || d < 0.001) continue;
+      const nx = dx / d, nz = dz / d, it = (BR_DIS * 2 - d) / 2;
       A.x -= nx * it; A.z -= nz * it; B.x += nx * it; B.z += nz * it;
       const vr = (B.vx - A.vx) * nx + (B.vz - A.vz) * nz;
       if (vr < 0) {
@@ -274,7 +276,7 @@ const Motor = (() => {
     if (!p || p.cikti) return;
     if (m.tip === 'k') {
       p.d = m.d === 'su' || m.d === 'ucus' ? m.d : 'gemi';
-      if (p.d === 'gemi') { p.lx = clamp(+m.lx || 0, -BR, BR); p.lz = clamp(+m.lz || 0, -BR, BR); }
+      if (p.d === 'gemi') { p.lx = clamp(+m.lx || 0, -R_TUT - 0.3, R_TUT + 0.3); p.lz = clamp(+m.lz || 0, -R_TUT - 0.3, R_TUT + 0.3); }
       else { p.x = +m.x || 0; p.z = +m.z || 0; p.y = +m.y || 0; }
       p.yaw = +m.yaw || 0; p.bas = clamp(+m.bas || 0, 0, 1);
       if (m.f !== undefined) p.fis = !!m.f && o.faz === 'yaris' && p.d === 'gemi';
@@ -292,6 +294,6 @@ const Motor = (() => {
     if (!o.bitti && o.oyuncular.every(x => x.cikti)) durdur();
   }
 
-  return { baslat, durdur, adim, girdi, cikis, DT, BR, get durum() { return o; } };
+  return { baslat, durdur, adim, girdi, cikis, DT, BR, R_TUT, BR_DIS, get durum() { return o; } };
 })();
 if (typeof module !== 'undefined') module.exports = Motor;

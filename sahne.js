@@ -280,7 +280,7 @@ const Sahne = (() => {
   const parcalar = [];
   function kopukHazirla() {
     kopukMesh = new THREE.InstancedMesh(kopukGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, transparent: true, opacity: 0.9 }), HAVUZ);
-    kopukMesh.frustumCulled = false; kopukMesh.count = 0; scene.add(kopukMesh);
+    kopukMesh.frustumCulled = false; kopukMesh.count = 0; kopukMesh.renderOrder = 10; scene.add(kopukMesh);
   }
   function kopukAt(x, y, z, vx, vy, vz, boy = 0.18, omur = 0.9, suruk = 1.5, buyu = 1.5, zemin = -1e9) {
     if (!kopukMesh) kopukHazirla();
@@ -290,7 +290,7 @@ const Sahne = (() => {
   // Osuruk bulutu: yeşilimsi, yavaş, şişerek dağılır. (dx,dz) gazın gittiği yön
   const HAVUZ_GAZ = 400; let gazMesh = null; const gazlar = [];
   function osuruk(x, y, z, dx, dz) {
-    if (!gazMesh) { gazMesh = new THREE.InstancedMesh(kopukGeo, new THREE.MeshStandardMaterial({ color: 0xa8c84a, roughness: 1, transparent: true, opacity: 0.45, depthWrite: false }), HAVUZ_GAZ); gazMesh.frustumCulled = false; gazMesh.count = 0; scene.add(gazMesh); }
+    if (!gazMesh) { gazMesh = new THREE.InstancedMesh(kopukGeo, new THREE.MeshStandardMaterial({ color: 0xa8c84a, roughness: 1, transparent: true, opacity: 0.45, depthWrite: false }), HAVUZ_GAZ); gazMesh.frustumCulled = false; gazMesh.count = 0; gazMesh.renderOrder = 10; scene.add(gazMesh); }   // suyun ÜSTÜNE çizilsin
     for (let k = 0; k < 2; k++) {
       if (gazlar.length >= HAVUZ_GAZ) gazlar.shift();
       const h = 2.2 + Math.random() * 1.8;

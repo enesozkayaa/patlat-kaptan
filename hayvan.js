@@ -83,20 +83,30 @@ const Hayvan = (() => {
   const _v = typeof THREE !== 'undefined' ? new THREE.Vector3() : null;
   function kic(h) { h.userData.kic.getWorldPosition(_v); return _v; }
 
-  // Animasyon: yuruyor (0..1), yuzuyor, osuruyor
+  // Animasyon: yuruyor (0..1), yuzuyor, tutunuyor (kenara asılı), osuruyor
   function canlandir(h, dt, d) {
-    const u = h.userData; u.faz += dt * (d.yuzuyor ? 6 : 10) * (0.3 + d.yuruyor);
+    const u = h.userData; u.faz += dt * (d.yuzuyor || d.tutunuyor ? 6 : 10) * (0.3 + d.yuruyor);
     const b = u.beden, os = d.osuruyor;
     const tit = os ? Math.sin(performance.now() / 25) * 0.05 : 0;
-    b.position.y = d.yuzuyor ? -0.45 : (os ? -0.08 + tit : Math.abs(Math.sin(u.faz)) * 0.08 * d.yuruyor);
-    const hedefX = d.yuzuyor ? 0.9 : (os ? 0.45 : 0);
+    let hedefX = 0;
+    if (d.tutunuyor) {
+      // Kenara asılı: dik, elleri öne-yukarı (tekne kenarında), ayaklar suda çırpıyor
+      b.position.y = Math.sin(u.faz * 0.5) * 0.03 + tit;
+      hedefX = os ? -0.35 : -0.12;                       // osururken popo geriye
+      u.kollar.forEach((k, j) => { k.rotation.x = -2.2 + Math.sin(u.faz + j) * 0.08; k.rotation.z = (j ? -1 : 1) * 0.15; });
+      u.ayaklar.forEach((a, j) => { a.position.z = 0.06 + Math.sin(u.faz * 2 + j * Math.PI) * 0.12; });
+    } else if (d.yuzuyor) {
+      b.position.y = -0.45; hedefX = 0.9;
+      u.kollar.forEach((k, j) => { k.rotation.x = Math.sin(u.faz * 1.3 + j * Math.PI) * 1.4; k.rotation.z = 0; });
+    } else {
+      b.position.y = os ? -0.08 + tit : Math.abs(Math.sin(u.faz)) * 0.08 * d.yuruyor;
+      hedefX = os ? 0.45 : 0;
+      u.ayaklar.forEach((a, j) => { a.position.z = 0.06 + Math.sin(u.faz + j * Math.PI) * 0.1 * d.yuruyor; });
+      u.kollar.forEach((k, j) => { k.rotation.x *= 0.85; k.rotation.z += ((j ? 0.4 : -0.4) - k.rotation.z) * 0.2; });
+    }
     b.rotation.x += (hedefX - b.rotation.x) * Math.min(1, dt * 12);
-    b.rotation.z = Math.sin(u.faz) * 0.08 * d.yuruyor + tit;
-    u.ayaklar.forEach((a, j) => { a.position.z = 0.06 + Math.sin(u.faz + j * Math.PI) * 0.1 * d.yuruyor; });
-    if (d.yuzuyor) u.kollar.forEach((k, j) => { k.rotation.x = Math.sin(u.faz * 1.3 + j * Math.PI) * 1.4; });
-    else if (os) u.kollar.forEach((k, j) => { k.rotation.x = -0.6; k.rotation.z = (j ? -1 : 1) * (0.9 + tit * 4); });   // kollar yanda, sıkıyor :)
-    else u.kollar.forEach((k, j) => { k.rotation.x *= 0.85; k.rotation.z += ((j ? 0.4 : -0.4) - k.rotation.z) * 0.2; });
-    u.bas.rotation.x = os ? -0.35 : 0;   // osururken başı yukarı, gözler kocaman
+    b.rotation.z = d.tutunuyor ? tit : Math.sin(u.faz) * 0.08 * d.yuruyor + tit;
+    u.bas.rotation.x = os ? -0.35 : 0;   // osururken başı yukarı
   }
 
   return { TURLER, AD, yap, canlandir, kic };

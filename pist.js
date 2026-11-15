@@ -76,9 +76,9 @@ const Pist = (() => {
     if (yakin(sx, KONTROL, 10) || yakin(sx, SALINCAKLAR, 11) || yakin(sx, GIRDAPLAR, 9)) continue;
     const i = endeks(sx), p = P[i], ekle = (d, r) => KAYALAR.push({ x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, r, i });
     const tip = j % 3;
-    if (tip === 0) ekle(0, 1.35);
-    else if (tip === 1) { ekle(-3.3, 1.05); ekle(3.3, 1.05); }
-    else ekle((j % 2 ? 1 : -1) * 2.4, 1.2);
+    if (tip === 0) ekle(0, 1.1);
+    else if (tip === 1) { ekle(-4.3, 0.9); ekle(4.3, 0.9); }
+    else ekle((j % 2 ? 1 : -1) * 2.6, 1.0);
   }
   // Salıncak kütüğünün o anki yeri: ileri (a) ve yükseklik (h, suya göre)
   function kutuk(k, zt) {

@@ -24,39 +24,68 @@ const Ses = (() => {
     if (sonFiltre) f.frequency.exponentialRampToValueAtTime(sonFiltre, c.currentTime + gecikme + sure);
     s.connect(f).connect(g).connect(c.destination); s.start(c.currentTime + gecikme);
   }
-  // Osuruk: basılı tuttukça süren, tonu titreyen bir 'prrrrt'. anahtar başına bir tane.
+  // Osuruk: gerçekçi olsun diye 'dudak çırpması' gibi düzensiz darbelerden oluşan bir ses
+  // önceden üretilir (birkaç farklı çeşit), basılı tuttukça döngüde çalar, bırakınca 'pfff' diye söner.
   const aktif = new Map();
-  let gurultuTampon = null;
+  let tamponlar = null;
+  function tamponUret(c, tohum) {
+    const sr = c.sampleRate, n = Math.floor(sr * 4), buf = c.createBuffer(1, n, sr), v = buf.getChannelData(0);
+    let r = tohum; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; };
+    let faz = 0, f = 60, hedefF = 60, sayac = 0, genlik = 1, bosluk = 0, yavas = 0, yavasHiz = 4 + rnd() * 4;
+    let ince = 0;   // ara sıra ince ıslık gibi yükselen kısım
+    for (let i = 0; i < n; i++) {
+      if (--sayac <= 0) { hedefF = 38 + rnd() * 70 + (rnd() < 0.12 ? 60 : 0); sayac = sr * (0.04 + rnd() * 0.18); ince = rnd() < 0.08 ? 1 : 0; }
+      f += (hedefF - f) * 0.0009;
+      yavas += yavasHiz / sr;
+      faz += (f * (1 + ince * 0.6)) / sr;
+      if (faz >= 1) {
+        faz -= 1;
+        genlik = 0.45 + rnd() * 0.75;
+        if (bosluk > 0) bosluk--; else if (rnd() < 0.035) bosluk = 1 + Math.floor(rnd() * 3);   // kısa kesilmeler: pırt-pırt
+      }
+      const x = faz;
+      const darbe = Math.exp(-x * 7) * (1 - Math.exp(-x * 90));          // dudak açılıp kapanıyor
+      const hava = (rnd() * 2 - 1) * 0.35 * Math.exp(-x * 3.5);           // ıslak hava
+      const zarf = 0.75 + 0.25 * Math.sin(yavas * Math.PI * 2);
+      v[i] = bosluk > 0 ? (rnd() * 2 - 1) * 0.04 : (darbe * 1.6 - 0.35 + hava) * genlik * zarf;
+    }
+    // uçları yumuşat (döngüde tık sesi olmasın)
+    const k = Math.floor(sr * 0.01); for (let i = 0; i < k; i++) { v[i] *= i / k; v[n - 1 - i] *= i / k; }
+    return buf;
+  }
   function osurukBasla(anahtar, ses = 1) {
     const c = al(); if (!c || !acik || ses < 0.02 || aktif.has(anahtar)) return;
+    if (!tamponlar) tamponlar = [7, 911, 4242].map(t => tamponUret(c, t));
     const t = c.currentTime;
-    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 75 + Math.random() * 45;
-    const lfo = c.createOscillator(); lfo.frequency.value = 10 + Math.random() * 9;
-    const lg = c.createGain(); lg.gain.value = 22; lfo.connect(lg).connect(o.frequency);
-    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 480; f.Q.value = 5;
-    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28 * ses, t + 0.03);
-    if (!gurultuTampon) { const n = c.sampleRate; gurultuTampon = c.createBuffer(1, n, n); const v = gurultuTampon.getChannelData(0); for (let i = 0; i < n; i++) v[i] = Math.random() * 2 - 1; }
-    const nz = c.createBufferSource(); nz.buffer = gurultuTampon; nz.loop = true;
-    const nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 260; nf.Q.value = 1.2;
-    const ng = c.createGain(); ng.gain.value = 0.5;
-    o.connect(f).connect(g); nz.connect(nf).connect(ng).connect(g); g.connect(c.destination);
-    o.start(t); lfo.start(t); nz.start(t);
-    // ton ve titreşim rastgele kaysın (komik olsun)
-    const zaman = setInterval(() => { const tt = c.currentTime; o.frequency.setTargetAtTime(60 + Math.random() * 80, tt, 0.06); lfo.frequency.setTargetAtTime(7 + Math.random() * 16, tt, 0.05); }, 130);
-    aktif.set(anahtar, { o, lfo, nz, g, zaman });
+    const kay = c.createBufferSource(); kay.buffer = tamponlar[Math.floor(Math.random() * tamponlar.length)]; kay.loop = true;
+    kay.playbackRate.value = 0.8 + Math.random() * 0.4;
+    const alt = c.createBiquadFilter(); alt.type = 'lowpass'; alt.frequency.value = 1100; alt.Q.value = 0.7;
+    const gov = c.createBiquadFilter(); gov.type = 'peaking'; gov.frequency.value = 170; gov.gain.value = 7; gov.Q.value = 1.1;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5 * ses, t + 0.012);
+    kay.connect(alt).connect(gov).connect(g).connect(c.destination);
+    kay.start(t, Math.random() * 3.5);
+    // tonu ara ara hafifçe kaydır (her osuruk biraz farklı)
+    const zaman = setInterval(() => { try { kay.playbackRate.setTargetAtTime(0.75 + Math.random() * 0.5, c.currentTime, 0.15); } catch (e) { } }, 350);
+    aktif.set(anahtar, { kay, g, zaman, ses });
   }
   function osurukBitir(anahtar) {
     const a = aktif.get(anahtar); if (!a) return;
     aktif.delete(anahtar); clearInterval(a.zaman);
-    const c = al(); const t = c ? c.currentTime : 0;
-    try { a.o.frequency.setTargetAtTime(45, t, 0.05); a.g.gain.setTargetAtTime(0.0001, t + 0.05, 0.04); } catch (e) { }
-    setTimeout(() => { try { a.o.stop(); a.lfo.stop(); a.nz.stop(); a.g.disconnect(); } catch (e) { } }, 350);
+    const c = al(); if (!c) return; const t = c.currentTime;
+    try {
+      a.kay.playbackRate.cancelScheduledValues(t); a.kay.playbackRate.setValueAtTime(a.kay.playbackRate.value, t);
+      a.kay.playbackRate.linearRampToValueAtTime(0.45, t + 0.16);                  // sönerken ton düşer: pfff
+      a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(a.g.gain.value, t);
+      a.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    } catch (e) { }
+    gurultu(0.22, 0.12 * a.ses, 900, 'bandpass', 0.02, 300);                       // son hava
+    setTimeout(() => { try { a.kay.stop(); a.g.disconnect(); } catch (e) { } }, 300);
   }
   function osurukHepsiBitir() { [...aktif.keys()].forEach(osurukBitir); }
 
   return {
     osurukBasla, osurukBitir, osurukHepsiBitir,
-    pirt() { ton(110, 0.09, 'sawtooth', 0.12, 0, -40); ton(90, 0.07, 'sawtooth', 0.1, 0.11, -30); },
+    pirt() { osurukBasla('pirt', 0.7); setTimeout(() => osurukBitir('pirt'), 90); },
     get acik() { return acik; },
     degistir() { acik = !acik; if (!acik) osurukHepsiBitir(); try { localStorage.setItem('pk.ses', acik ? '1' : '0'); } catch (e) { } return acik; },
     baslat() { al(); },

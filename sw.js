@@ -3,7 +3,7 @@
 // Oyunu güncelleyip yüklerken ONBELLEK numarasını 1 artır.
 // =============================================================
 
-const ONBELLEK = 'patlat-kaptan-v1';
+const ONBELLEK = 'patlat-kaptan-v2';
 const DOSYALAR = [
   './', 'index.html', 'style.css', 'pist.js', 'motor.js', 'hayvan.js', 'sahne.js', 'ag.js', 'ses.js', 'oyun.js',
   'manifest.webmanifest', 'ikonlar/ikon-192.png', 'ikonlar/ikon-512.png',
