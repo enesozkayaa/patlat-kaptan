@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<!--
+  Çalkala Kaptan - uygulama simgesi. Adres sonuna ?boyut=512 yazılır.
+  PNG için: msedge --headless=new --user-data-dir=<geçici klasör> --hide-scrollbars --window-size=512,512 --screenshot=ikonlar/ikon-512.png "file:///.../araclar/ikon-ciz.html?boyut=512"
+-->
+<html>
+<head>
+<meta charset="UTF-8">
+<style>html, body { margin: 0; background: #1f6fb8; overflow: hidden; } canvas { display: block; }</style>
+</head>
+<body>
+<script>
+  const boyut = +(new URLSearchParams(location.search).get('boyut') || 512);
+  const c = document.createElement('canvas'); c.width = c.height = boyut; document.body.appendChild(c);
+  const g = c.getContext('2d'); g.scale(boyut / 512, boyut / 512);
+  // Gökyüzü ve su
+  const gok = g.createLinearGradient(0, 0, 0, 512); gok.addColorStop(0, '#5ac0ff'); gok.addColorStop(1, '#bfe8ff');
+  g.fillStyle = gok; g.fillRect(0, 0, 512, 512);
+  g.fillStyle = '#5aa04a'; g.beginPath(); g.moveTo(0, 300); g.lineTo(140, 150); g.lineTo(256, 230); g.lineTo(380, 120); g.lineTo(512, 290); g.lineTo(512, 512); g.lineTo(0, 512); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.moveTo(350, 150); g.lineTo(380, 120); g.lineTo(410, 158); g.lineTo(390, 150); g.lineTo(372, 162); g.fill();
+  const su = g.createLinearGradient(0, 330, 0, 512); su.addColorStop(0, '#2f9fe0'); su.addColorStop(1, '#1a6ab0');
+  g.fillStyle = su; g.fillRect(0, 330, 512, 182);
+  g.strokeStyle = '#ffffff88'; g.lineWidth = 6; g.lineCap = 'round';
+  for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(30 + i * 85, 370 + (i % 2) * 40); g.lineTo(80 + i * 85, 370 + (i % 2) * 40); g.stroke(); }
+  // Köpük (sola fışkırıyor)
+  g.fillStyle = '#fff';
+  [[150, 250, 34], [110, 265, 30], [72, 285, 27], [40, 300, 24], [125, 228, 22], [85, 240, 18], [55, 255, 15], [175, 238, 24]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+  // Tekne (yuvarlak leğen)
+  g.fillStyle = '#b07a40'; g.beginPath(); g.ellipse(300, 380, 150, 46, 0, 0, Math.PI); g.lineTo(450, 350); g.ellipse(300, 350, 150, 40, 0, 0, Math.PI, true); g.fill();
+  g.fillStyle = '#8a5a2a'; g.beginPath(); g.ellipse(300, 350, 142, 34, 0, 0, 7); g.fill();
+  g.strokeStyle = '#e8483a'; g.lineWidth = 16; g.beginPath(); g.ellipse(300, 350, 150, 40, 0, 0, 7); g.stroke();
+  // Penguen kaptan
+  g.fillStyle = '#22252e'; g.beginPath(); g.ellipse(300, 290, 62, 78, 0, 0, 7); g.fill();
+  g.fillStyle = '#f4f4f0'; g.beginPath(); g.ellipse(310, 300, 40, 58, 0, 0, 7); g.fill();
+  g.fillStyle = '#22252e'; g.beginPath(); g.arc(300, 200, 50, 0, 7); g.fill();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(285, 195, 14, 0, 7); g.arc(322, 195, 14, 0, 7); g.fill();
+  g.fillStyle = '#111'; g.beginPath(); g.arc(289, 197, 7, 0, 7); g.arc(326, 197, 7, 0, 7); g.fill();
+  g.fillStyle = '#ff9a2a'; g.beginPath(); g.moveTo(296, 212); g.lineTo(340, 220); g.lineTo(296, 228); g.fill();
+  // Şapka
+  g.fillStyle = '#fff'; g.beginPath(); g.ellipse(300, 158, 50, 13, -0.15, 0, 7); g.fill(); g.fillRect(266, 128, 68, 30);
+  g.fillStyle = '#1f3a8a'; g.fillRect(266, 146, 68, 9);
+  // Sırttaki gazoz şişesi (ağzı sola-aşağı)
+  g.save(); g.translate(235, 262); g.rotate(1.7);
+  g.fillStyle = '#2fae5a'; g.fillRect(-22, -60, 44, 80);
+  g.beginPath(); g.moveTo(-22, 20); g.lineTo(-9, 45); g.lineTo(9, 45); g.lineTo(22, 20); g.fill();
+  g.fillRect(-8, 45, 16, 18);
+  g.fillStyle = '#ffe14a'; g.fillRect(-22, -30, 44, 24);
+  g.fillStyle = '#e03a2a'; g.fillRect(-10, 62, 20, 8);
+  g.restore();
+  // Fular
+  g.fillStyle = '#e8483a'; g.beginPath(); g.ellipse(300, 245, 46, 12, 0, 0, 7); g.fill();
+</script>
+</body>
+</html>
