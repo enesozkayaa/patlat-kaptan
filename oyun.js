@@ -451,8 +451,9 @@ const Oyun = (() => {
     ben.x += (mx * YUZ - q.tx * ak + ben.vx) * dt; ben.z += (mz * YUZ - q.tz * ak + ben.vz) * dt;
     ben.y = s.y - 0.05;
     const s2 = P.bul(ben.x, ben.z, ben.y, ben.ipucu) || s, q2 = P.P[s2.i];
-    if (s2.i === 0 && s2.a < 0) { ben.x -= q2.tx * s2.a; ben.z -= q2.tz * s2.a; }
-    if (s2.i === P.N - 1 && s2.a > 0) { ben.x -= q2.tx * s2.a; ben.z -= q2.tz * s2.a; }
+    const yol2 = q2.s + s2.a, p0 = P.P[0], pn = P.P[P.N - 1];
+    if (yol2 < 0.6) { ben.x += p0.tx * (0.6 - yol2); ben.z += p0.tz * (0.6 - yol2); }   // iskeleye girmesin
+    if (yol2 > P.L - 0.6) { ben.x -= pn.tx * (yol2 - P.L + 0.6); ben.z -= pn.tz * (yol2 - P.L + 0.6); }
     if (Math.abs(s2.d) > P.YARI + 0.1) { const yon = Math.sign(s2.d); suyaDus(ben.x, ben.z, ben.y, q2.nx * 2 * yon + ben.vx, q2.nz * 2 * yon + ben.vz, 0.5, ben.y - 2); Ses.dusus(); return; }
     if (performance.now() - ben.sonYuz > 600 && (mx || mz)) { ben.sonYuz = performance.now(); Ses.yuz(); }
     // Teknesine yaklaştıysa biner

@@ -192,8 +192,10 @@ const Motor = (() => {
     b.i = s.i; b.y = s.y;
     const q = P.P[s.i];
     // Pistin başı (iskele) ve sonu (zirve duvarı)
-    if (s.i === 0 && s.a < BR_DIS + 0.2) { const f = BR_DIS + 0.2 - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt < 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
-    if (s.i === P.N - 1 && s.a > -BR_DIS) { const f = -BR_DIS - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt > 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
+    // (arkaya tutunan karakter de iskeleye girmesin: tekne + tutunan + gövde payı)
+    const yol = q.s + s.a, MIN_BAS = R_TUT + 0.6;
+    if (yol < MIN_BAS) { const p0 = P.P[0], f = MIN_BAS - yol; b.x += p0.tx * f; b.z += p0.tz * f; const vt = b.vx * p0.tx + b.vz * p0.tz; if (vt < 0) { b.vx -= vt * p0.tx; b.vz -= vt * p0.tz; } }
+    if (yol > P.L - MIN_BAS) { const pn = P.P[P.N - 1], f = yol - (P.L - MIN_BAS); b.x -= pn.tx * f; b.z -= pn.tz * f; const vt = b.vx * pn.tx + b.vz * pn.tz; if (vt > 0) { b.vx -= vt * pn.tx; b.vz -= vt * pn.tz; } }
     // Kenarlarda korkuluk yok. Taşmaya başlayan tekne önce kenarda sallanır: taşan tarafa yatar,
     // yerçekimi dışarı çeker. O taraftakiler osurursa geri itilir; çok taşarsa düşer.
     const asim = Math.abs(s.d) - KENAR0;
