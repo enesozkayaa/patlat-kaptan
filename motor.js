@@ -163,17 +163,13 @@ const Motor = (() => {
     // Pistin başı (iskele) ve sonu (zirve duvarı)
     if (s.i === 0 && s.a < BR - 0.6) { const f = BR - 0.6 - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt < 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
     if (s.i === P.N - 1 && s.a > -BR) { const f = -BR - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt > 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
-    // İç duvar (dağ)
-    if (s.d < -(P.YARI - BR)) itDuvar(b, q, -(P.YARI - BR) - s.d, 1);
-    // Dış kenar: korkuluk varsa duvar, yoksa düşer
-    if (s.d > P.YARI - BR) {
-      if (P.korkuluk[s.i]) itDuvar(b, q, (P.YARI - BR) - s.d, -1);
-      else if (s.d > P.YARI - 0.35) {
-        b.hav = true; b.havY = b.y; b.vy = 1.2;
-        const dis = b.vx * q.nx + b.vz * q.nz; if (dis < 2.5) { b.vx += q.nx * (2.5 - dis); b.vz += q.nz * (2.5 - dis); }
-        cb.herkese({ tip: 'dustu', tekne: b.no });
-        return;
-      }
+    // Kenarlarda korkuluk yok: dışarı savrulan alttaki nehre, içeri düşen göle düşer
+    if (Math.abs(s.d) > P.YARI - 0.35) {
+      const yon = Math.sign(s.d);
+      b.hav = true; b.havY = b.y; b.vy = 1.2;
+      const dis = (b.vx * q.nx + b.vz * q.nz) * yon; if (dis < 2.5) { b.vx += q.nx * yon * (2.5 - dis); b.vz += q.nz * yon * (2.5 - dis); }
+      cb.herkese({ tip: 'dustu', tekne: b.no, ic: yon < 0 });
+      return;
     }
     // Kayalar
     for (const k of P.KAYALAR) {

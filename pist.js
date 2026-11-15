@@ -1,7 +1,8 @@
 // =============================================================
 // Çalkala Kaptan - pist: dağın etrafında dolana dolana YUKARI çıkan nehir.
-// Su aşağı akar, tekneler akıntıya karşı tırmanır. Virajın dış kenarında
-// korkuluk olmayan yerden düşen bir alt kattaki nehre düşer.
+// Nehir havada duran bir su kanalıdır (sütunlar taşır), kenarlarında korkuluk yok.
+// Su aşağı akar, tekneler akıntıya karşı tırmanır. Dışarı savrulan bir alt
+// kattaki nehre, içeri düşen ortadaki göle düşer.
 // Hem tarayıcıda hem Node'da (testler) çalışır.
 // =============================================================
 
@@ -46,10 +47,10 @@ const Pist = (() => {
   }
 
   // Korkuluklar: başta ve sonda hep var, arada bazı yerlerde boşluk (düşülebilir)
-  const korkuluk = P.map(p => p.s < 70 || p.s > L - 45 || Math.floor(p.s / 40) % 3 !== 1);
+  const korkuluk = P.map(() => false);   // korkuluk yok: iki kenardan da düşülür
 
-  // Kontrol noktaları (5 ara + bitiş)
-  const KONTROL = [1, 2, 3, 4, 5].map(n => endeks(L * n / 6));
+  // Kontrol noktaları (7 ara + bitiş)
+  const KONTROL = [1, 2, 3, 4, 5, 6, 7].map(n => endeks(L * n / 8));
   const BITIS = endeks(L - 5);
   function endeks(sx) { let i = 0; while (i < N - 1 && P[i].s < sx) i++; return i; }
 

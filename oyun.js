@@ -221,7 +221,7 @@ const Oyun = (() => {
       case 'itildi': if (oyun && ben) itildi(m); break;
       case 'fis': if (oyun && oyun.benim && m.no !== oyun.benim.no) { const v = oyun.hayvanlar.get(m.no); if (v) Ses.fiskir(m.guc, yakinlik(v.x, v.y, v.z)); } break;
       case 'patladi': if (oyun) { const v = oyun.hayvanlar.get(m.no); if (oyun.benim && m.no === oyun.benim.no) break; if (v) { Sahne.patlama(v.x, v.y + 0.7, v.z); Ses.patla(yakinlik(v.x, v.y, v.z)); } akis(`💥 ${kacis(m.ad)}'ın şişesi patladı!`); } break;
-      case 'dustu': if (oyun) { if (benimTekne(m.tekne)) { buyukYazi('AAAAA! 😱', 'Aşağıdaki nehre düşüyorsunuz', 1500); Ses.dusus(); } else akis(`${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekne kenardan düştü!`, 'iyi'); } break;
+      case 'dustu': if (oyun) { if (benimTekne(m.tekne)) { buyukYazi('AAAAA! 😱', m.ic ? 'İçeri, göle düşüyorsunuz!' : 'Aşağıdaki nehre düşüyorsunuz', 1500); Ses.dusus(); } else akis(`${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekne kenardan düştü!`, 'iyi'); } break;
       case 'indi': if (oyun) { Sahne.sicrama(m.x, m.y, m.z, 2); Ses.sicrama(yakinlik(m.x, m.y, m.z)); } break;
       case 'gol': if (oyun) { Sahne.sicrama(m.x, P.GOL_Y, m.z, 2); if (benimTekne(m.tekne)) { buyukYazi('GÖLE DÜŞTÜNÜZ! 💦', 'Son kontrol noktasına dönülüyor', 2000); Ses.sicrama(1); } else akis(`${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekne göle düştü!`, 'iyi'); } break;
       case 'yeniden': if (oyun && benimTekne(m.tekne) && ben && ben.d !== 'gemi') teknedeBin(true); break;
@@ -381,7 +381,7 @@ const Oyun = (() => {
   }
   const yerel2dunya = (b, lx, lz) => { const c = Math.cos(b.yaw), s = Math.sin(b.yaw); return { x: b.x + lx * c + lz * s, z: b.z - lx * s + lz * c }; };
   const dunya2yerel = (b, x, z) => { const wx = x - b.x, wz = z - b.z, c = Math.cos(b.yaw), s = Math.sin(b.yaw); return { lx: wx * c - wz * s, lz: wx * s + wz * c }; };
-  const guverte = (b, lx, lz) => b.y + 0.18 - (lx * b.egX + lz * b.egZ) * 0.12;
+  const guverte = (b, lx, lz) => b.y + 0.04 - (lx * b.egX + lz * b.egZ) * 0.12;
   function benDunya() {
     if (!ben) return { x: 0, y: 0, z: 0 };
     if (ben.d !== 'gemi') return { x: ben.x, y: ben.y, z: ben.z };
@@ -407,7 +407,7 @@ const Oyun = (() => {
       const y0 = ben.y;
       ben.vy -= 13 * dt; ben.x += ben.vx * dt; ben.z += ben.vz * dt; ben.y += ben.vy * dt;
       // Kendi teknesinin üstüne düştüyse binsin
-      if (b && ben.vy < 0 && b.devrik === 0 && Math.hypot(ben.x - b.x, ben.z - b.z) < BR - 0.2 && ben.y <= b.y + 0.5 && ben.y > b.y - 0.5) return teknedeBin(false);
+      if (b && ben.vy < 0 && b.devrik === 0 && Math.hypot(ben.x - b.x, ben.z - b.z) < BR - 0.2 && ben.y <= b.y + 0.3 && ben.y > b.y - 0.5) return teknedeBin(false);
       const j = P.inis(ben.x, ben.z, y0, ben.y);
       if (j >= 0 && P.P[j].y <= ben.inisSinir) { ben.d = 'su'; ben.y = P.P[j].y; ben.ipucu = j; ben.vy = 0; Sahne.sicrama(ben.x, ben.y, ben.z, 1); Ses.sicrama(0.8); return; }
       if (ben.y < P.GOL_Y) { ben.d = 'su'; ben.y = P.GOL_Y; ben.golT = 0.01; ben.ipucu = -1; Sahne.sicrama(ben.x, ben.y, ben.z, 1.2); Ses.sicrama(1); }
@@ -430,11 +430,7 @@ const Oyun = (() => {
     const s2 = P.bul(ben.x, ben.z, ben.y, ben.ipucu) || s, q2 = P.P[s2.i];
     if (s2.i === 0 && s2.a < 0) { ben.x -= q2.tx * s2.a; ben.z -= q2.tz * s2.a; }
     if (s2.i === P.N - 1 && s2.a > 0) { ben.x -= q2.tx * s2.a; ben.z -= q2.tz * s2.a; }
-    if (s2.d < -(P.YARI - 0.3)) { const f = -(P.YARI - 0.3) - s2.d; ben.x += q2.nx * f; ben.z += q2.nz * f; }
-    if (s2.d > P.YARI - 0.3) {
-      if (P.korkuluk[s2.i]) { const f = (P.YARI - 0.3) - s2.d; ben.x += q2.nx * f; ben.z += q2.nz * f; }
-      else if (s2.d > P.YARI + 0.1) { suyaDus(ben.x, ben.z, ben.y, q2.nx * 2 + ben.vx, q2.nz * 2 + ben.vz, 0.5, ben.y - 2); Ses.dusus(); return; }
-    }
+    if (Math.abs(s2.d) > P.YARI + 0.1) { const yon = Math.sign(s2.d); suyaDus(ben.x, ben.z, ben.y, q2.nx * 2 * yon + ben.vx, q2.nz * 2 * yon + ben.vz, 0.5, ben.y - 2); Ses.dusus(); return; }
     if (performance.now() - ben.sonYuz > 600 && (mx || mz)) { ben.sonYuz = performance.now(); Ses.yuz(); }
     // Teknesine yaklaştıysa biner
     if (b && ben.suT > 1.2 && b.devrik === 0 && b.hav === 0 && Math.hypot(ben.x - b.x, ben.z - b.z) < BR + 0.45 && Math.abs(ben.y - b.y) < 1.2) return teknedeBin(false);
@@ -558,12 +554,7 @@ const Oyun = (() => {
     let uz = 7;
     const cp = Math.cos(kamPitch), sp = Math.sin(kamPitch), fx = Math.sin(kamYaw), fz = Math.cos(kamYaw);
     let cx, cy, cz;
-    for (let k = 0; k < 6; k++) {
-      cx = hx - fx * cp * uz; cy = hy + sp * uz; cz = hz - fz * cp * uz;
-      const s = P.bul(cx, cz, w.y, ben?.ipucu ?? -1);
-      if (!s || !(s.d < -(P.YARI + 0.3) && cy < s.y + (-s.d - P.YARI) * 4.6)) break;
-      uz *= 0.72;
-    }
+    cx = hx - fx * cp * uz; cy = hy + sp * uz; cz = hz - fz * cp * uz;
     cam.position.set(cx, Math.max(cy, P.GOL_Y + 0.5), cz);
     cam.lookAt(hx, hy, hz);
   }
