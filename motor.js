@@ -14,6 +14,7 @@ const Motor = (() => {
   const SURUK = 0.55, SURUK2 = 0.06, DONUS_SURUK = 2.0;
   const GERI_SAYIM = 3.5;
   const DEVRIL_ORAN = 0.97, DEVRIL_SURE = 1.2, DEVRIK_KAL = 2.6;
+  const KENAR0 = P.YARI - 0.9, KENAR_DUS = P.YARI + 0.9;   // bu aralıkta tekne kenarda sallanır, kurtarılabilir
   const KONI_BOY = 4.5, KONI_ACI = Math.cos(36 * Math.PI / 180);
   let o = null, cb = null, zaman = null;
 
@@ -24,7 +25,7 @@ const Motor = (() => {
       t: 0, zt: 0, faz: 'geri', fazT: GERI_SAYIM, bitti: null, ayar: { ...ayar },
       tekneler: Array.from({ length: tekneSay }, (_, no) => {
         const b = P.baslangic(no);
-        return { no, x: b.x, z: b.z, y: b.y, yaw: b.yaw, vx: 0, vz: 0, vy: 0, w: 0, i: P.endeks(no < 2 ? 17 : 10), cp: -1, kutukT: 0, hav: false, havY: 0, devrik: 0, devrilT: 0, gol: 0, fx: 0, fz: 0, tork: 0, egX: 0, egZ: 0, salla: 0, sallaV: 0, ex: 0, ez: 0, evx: 0, evz: 0, batma: 0, batmaV: 0, havT: 0, dusX: 0, dusZ: 0 };
+        return { no, x: b.x, z: b.z, y: b.y, yaw: b.yaw, vx: 0, vz: 0, vy: 0, w: 0, i: P.endeks(no < 2 ? 17 : 10), cp: -1, kutukT: 0, hav: false, havY: 0, devrik: 0, devrilT: 0, gol: 0, fx: 0, fz: 0, tork: 0, egX: 0, egZ: 0, salla: 0, sallaV: 0, ex: 0, ez: 0, evx: 0, evz: 0, batma: 0, batmaV: 0, havT: 0, dusX: 0, dusZ: 0, havAci0: 0, kenarda: 0, kx: 0, kz: 0 };
       }),
       oyuncular: liste.map((p, no) => ({ id: p.id, ad: p.ad, no, tekne: p.tekne, d: 'gemi', lx: 0, lz: 0, x: 0, z: 0, y: 0, yaw: 0, bas: 0, fis: false, itT: 0, cikti: false })),
     };
@@ -150,7 +151,7 @@ const Motor = (() => {
       b.x += b.vx * DT; b.z += b.vz * DT; b.y += b.vy * DT;
       b.yaw += b.w * DT;
       // devrilme açısı: önce kenardan hızla devrilir, sonra burnu aşağı yan yatmış düşer
-      const aci = 1.55 * (1 - Math.exp(-b.havT * 2.6));
+      const aci = b.havAci0 + (1.55 - b.havAci0) * (1 - Math.exp(-b.havT * 2.6));
       b.ex = b.dusX * aci; b.ez = b.dusZ * aci; b.evx = b.dusX * 2.6 * Math.exp(-b.havT * 2.6); b.evz = b.dusZ * 2.6 * Math.exp(-b.havT * 2.6);
       const j = P.inis(b.x, b.z, y0, b.y);
       if (j >= 0 && P.P[j].y < b.havY - 2) {
@@ -166,7 +167,7 @@ const Motor = (() => {
       }
       return;
     }
-    yayAdim(b, 0);
+    yayAdim(b, 0, b.kx, b.kz);
 
     // Kuvvetler: fışkırma + akıntı (aşağı) + sürtünme
     const p0 = P.P[b.i], ak = P.akinti(b.i);
@@ -193,10 +194,22 @@ const Motor = (() => {
     // Pistin başı (iskele) ve sonu (zirve duvarı)
     if (s.i === 0 && s.a < BR_DIS + 0.2) { const f = BR_DIS + 0.2 - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt < 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
     if (s.i === P.N - 1 && s.a > -BR_DIS) { const f = -BR_DIS - s.a; b.x += q.tx * f; b.z += q.tz * f; const vt = b.vx * q.tx + b.vz * q.tz; if (vt > 0) { b.vx -= vt * q.tx; b.vz -= vt * q.tz; } }
-    // Kenarlarda korkuluk yok: dışarı savrulan alttaki nehre, içeri düşen göle düşer
-    if (Math.abs(s.d) > P.YARI - 0.35) {
+    // Kenarlarda korkuluk yok. Taşmaya başlayan tekne önce kenarda sallanır: taşan tarafa yatar,
+    // yerçekimi dışarı çeker. O taraftakiler osurursa geri itilir; çok taşarsa düşer.
+    const asim = Math.abs(s.d) - KENAR0;
+    if (asim > 0) {
+      const yon = Math.sign(s.d), oran = Math.min(1, asim / (KENAR_DUS - KENAR0));
+      b.vx += q.nx * yon * (0.6 + asim * 1.8) * DT; b.vz += q.nz * yon * (0.6 + asim * 1.8) * DT;
+      b.kx = q.nx * yon * oran * 0.95; b.kz = q.nz * yon * oran * 0.95;
+      if (!b.kenarda) { b.kenarda = 1; cb.herkese({ tip: 'kenarda', tekne: b.no, ic: yon < 0 }); }
+    } else {
+      b.kx = 0; b.kz = 0;
+      if (b.kenarda && asim < -0.4) { b.kenarda = 0; cb.herkese({ tip: 'kurtuldu', tekne: b.no }); }
+    }
+    if (Math.abs(s.d) > KENAR_DUS) {
       const yon = Math.sign(s.d);
-      b.hav = true; b.havY = b.y; b.vy = 1.2; b.havT = 0; b.dusX = q.nx * yon; b.dusZ = q.nz * yon;
+      b.hav = true; b.havY = b.y; b.vy = 0.6; b.havT = 0; b.dusX = q.nx * yon; b.dusZ = q.nz * yon;
+      b.havAci0 = Math.min(1.2, Math.hypot(b.ex, b.ez)); b.kenarda = 0; b.kx = 0; b.kz = 0;
       const dis = (b.vx * q.nx + b.vz * q.nz) * yon; if (dis < 2.5) { b.vx += q.nx * yon * (2.5 - dis); b.vz += q.nz * yon * (2.5 - dis); }
       cb.herkese({ tip: 'dustu', tekne: b.no, ic: yon < 0 });
       return;
@@ -233,8 +246,8 @@ const Motor = (() => {
     b.evx = -b.ex * 4; b.evz = -b.ez * 4;
     b.sallaV += 0.8;
   }
-  function yayAdim(b, hedefBatma) {
-    b.evx += (-55 * b.ex - 6 * b.evx) * DT; b.evz += (-55 * b.ez - 6 * b.evz) * DT;
+  function yayAdim(b, hedefBatma, hx = 0, hz = 0) {
+    b.evx += (-55 * (b.ex - hx) - 6 * b.evx) * DT; b.evz += (-55 * (b.ez - hz) - 6 * b.evz) * DT;
     b.ex += b.evx * DT; b.ez += b.evz * DT;
     b.batmaV += (-40 * (b.batma - hedefBatma) - 5 * b.batmaV) * DT; b.batma += b.batmaV * DT;
   }

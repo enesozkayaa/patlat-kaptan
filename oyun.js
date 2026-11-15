@@ -221,6 +221,8 @@ const Oyun = (() => {
       case 'faz': if (oyun && m.faz === 'yaris') { buyukYazi('PATLAT! 💨', 'Basılı tut, osur, zirveye tırman!', 1600); Ses.basla(); } break;
       case 'itildi': if (oyun && ben) itildi(m); break;
       case 'kutuk': if (oyun) { Sahne.sicrama(m.x, m.y, m.z, 1.2); Ses.carpma(yakinlik(m.x, m.y, m.z)); if (benimTekne(m.tekne)) buyukYazi('KÜTÜK! 🪵', 'Zamanlamayı tuttur: kütük yukarıdayken geç', 1500); else akis(`🪵 ${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekneye kütük çarptı!`, 'iyi'); } break;
+      case 'kenarda': if (oyun) { if (benimTekne(m.tekne)) { buyukYazi('KENARDAYIZ! ⚠️', 'Düşen taraftan osurun, tekneyi geri itin!', 1800); Ses.bildirim(); } } break;
+      case 'kurtuldu': if (oyun && benimTekne(m.tekne)) { buyukYazi('KURTULDUK! 😅', '', 1000); } break;
       case 'dustu': if (oyun) { if (benimTekne(m.tekne)) { buyukYazi('AAAAA! 😱', m.ic ? 'İçeri, göle düşüyorsunuz!' : 'Aşağıdaki nehre düşüyorsunuz', 1500); Ses.dusus(); } else akis(`${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekne kenardan düştü!`, 'iyi'); } break;
       case 'indi': if (oyun) { Sahne.sicrama(m.x, m.y, m.z, 2); Ses.sicrama(yakinlik(m.x, m.y, m.z)); } break;
       case 'gol': if (oyun) { Sahne.sicrama(m.x, P.GOL_Y, m.z, 2); if (benimTekne(m.tekne)) { buyukYazi('GÖLE DÜŞTÜNÜZ! 💦', 'Son kontrol noktasına dönülüyor', 2000); Ses.sicrama(1); } else akis(`${renkEmoji(m.tekne)} ${renkAd(m.tekne)} tekne göle düştü!`, 'iyi'); } break;
