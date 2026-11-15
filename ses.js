@@ -74,6 +74,23 @@ const Ses = (() => {
     basla() { ton(990, 0.5, 'square', 0.1); ton(1320, 0.5, 'square', 0.06, 0.05); },
     bildirim() { ton(880, 0.12, 'sine', 0.12); ton(1320, 0.18, 'sine', 0.1, 0.12); },
     yuz() { gurultu(0.25, 0.12, 900, 'bandpass'); },
+    // 🦆 vak vak
+    vak(s = 1) { [0, 0.18, 0.36].forEach(g => { ton(520, 0.12, 'sawtooth', 0.08 * s, g, -180); gurultu(0.08, 0.15 * s, 1400, 'bandpass', g); }); },
+    // 🥤 geğirti (gazozda osuruk yerine): kalın, 'öğğğ' diye
+    gegirBasla(anahtar, ses = 1) {
+      const c = al(); if (!c || !acik || ses < 0.02 || aktif.has(anahtar)) return;
+      const t = c.currentTime, o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 85 + Math.random() * 25;
+      const lfo = c.createOscillator(); lfo.frequency.value = 7; const lg = c.createGain(); lg.gain.value = 12; lfo.connect(lg).connect(o.frequency);
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 480; f.Q.value = 6;
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5 * ses, t + 0.05);
+      o.connect(f).connect(g).connect(c.destination); o.start(t); lfo.start(t);
+      const nz = c.createOscillator(); nz.start(t);
+      aktif.set(anahtar, { o, lfo, nz, g, zaman: setInterval(() => o.frequency.setTargetAtTime(70 + Math.random() * 40, c.currentTime, 0.1), 200) });
+    },
+    pop(s = 1) { ton(600, 0.08, 'square', 0.15 * s, 0, -450); gurultu(0.25, 0.6 * s, 2500, 'lowpass'); ton(1200, 0.4, 'sine', 0.08 * s, 0.05, 600); },
+    kombo() { gurultu(0.9, 0.7, 600, 'lowpass', 0, 120); ton(60, 0.8, 'sawtooth', 0.25, 0, -30); [523, 784, 1046].forEach((f, i) => ton(f, 0.2, 'square', 0.07, 0.25 + i * 0.07)); },
+    yemek() { [880, 1175].forEach((f, i) => ton(f, 0.12, 'triangle', 0.12, i * 0.07)); },
+    marti(s = 1) { ton(1400, 0.25, 'triangle', 0.08 * s, 0, -600); ton(1100, 0.2, 'triangle', 0.06 * s, 0.22, -500); },
     kazandi() { [523, 659, 784, 1046, 1318].forEach((f, i) => ton(f, 0.28, 'triangle', 0.13, i * 0.11)); },
     kaybetti() { [392, 330, 262, 196].forEach((f, i) => ton(f, 0.3, 'triangle', 0.12, i * 0.16)); },
   };

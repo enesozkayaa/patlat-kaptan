@@ -75,7 +75,12 @@ const Hayvan = (() => {
     const kic = new THREE.Object3D(); kic.position.set(0, 0.3, -0.42); beden.add(kic);
     [-1, 1].forEach(s => { const y = kure(0.17, gm); y.position.set(0.12 * s, 0.3, -0.24); beden.add(y); });
 
-    kok.userData = { beden, bas, kollar, ayaklar, kic, tur, faz: Math.random() * 10 };
+    // Kızaran yanaklar (çok osurunca) ve ter damlası
+    const yanakM = new THREE.MeshBasicMaterial({ color: 0xff3a4a, transparent: true, opacity: 0 });
+    [-1, 1].forEach(s => { const y = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), yanakM); y.position.set(0.16 * s, -0.06, 0.2); y.scale.set(1, 0.6, 0.4); bas.add(y); });
+    const ter = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: 0x8ad0ff, transparent: true, opacity: 0.9 }));
+    ter.scale.set(0.8, 1.3, 0.8); ter.position.set(0.24, 0.2, 0.08); ter.visible = false; bas.add(ter);
+    kok.userData = { beden, bas, kollar, ayaklar, kic, tur, faz: Math.random() * 10, yanakM, ter };
     return kok;
   }
 
@@ -107,6 +112,9 @@ const Hayvan = (() => {
     b.rotation.x += (hedefX - b.rotation.x) * Math.min(1, dt * 12);
     b.rotation.z = d.tutunuyor ? tit : Math.sin(u.faz) * 0.08 * d.yuruyor + tit;
     u.bas.rotation.x = os ? -0.35 : 0;   // osururken başı yukarı
+    const kz = d.kizar || 0;
+    u.yanakM.opacity = Math.min(0.85, kz * 1.1);
+    u.ter.visible = kz > 0.65; if (u.ter.visible) u.ter.position.y = 0.2 - ((performance.now() / 900) % 1) * 0.25;
   }
 
   return { TURLER, AD, yap, canlandir, kic };

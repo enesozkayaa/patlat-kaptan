@@ -50,6 +50,8 @@
           <li>🏁 7 kontrol noktasından geçip zirvedeki bayrağa ilk varan tekne kazanır.</li>
           <li>Bilgisayar: ekrana tıkla, fareyle bak. WASD teknenin etrafında kay, Boşluk ya da sol tık basılı tut → osur. K mikrofon. ESC fareyi bırakır.</li>
           <li>Telefon: sol tarafta parmağınla teknenin etrafında kay, sağ tarafta kaydırarak bak, OSUR düğmesini basılı tut.</li>
+          <li>🎉 <b>Eklentiler</b> (oda sahibi açar/kapatır): 🫘 fasulye gazı doldurur, 🌶️ acı biber turbo yapar (ama yön kaçar), 🥬 lahana osuruğu arkandakilerin ekranını sise boğar, 🥤 gazozda osuruk yerine geğirirsin ve tekne geri gider. 💥 Takımın hepsi aynı anda osurursa SÜPER PATLAMA! 🦆 Ördeklere çarparsan yavaşlarsın, 🐟 balık suratına çarpabilir, 🐦 martılar osuruk bulutunda bayılır, 🍾 dev tıkacı hep beraber itip fırlatmadan geçemezsiniz.</li>
+          <li>😂 Emoji: 1-4 tuşları ya da ekrandaki emoji düğmeleri. Gaz azken osurursan hıçkırık gibi pıt pıt gider, çok osuranın yanakları kızarır!</li>
           <li>🎤 Oyunda sadece aynı teknedekiler birbirini duyar.</li>
         </ul>
       </details>
@@ -64,6 +66,18 @@
       <div id="tekneler" class="tekneler"></div>
       <div id="ayarlar">
         <label>🛶 Teknede kaç kişi <select id="ayKisi"><option value="1">1 kişi</option><option value="2">2 kişi</option><option value="3">3 kişi</option><option value="4" selected>4 kişi</option></select></label>
+      </div>
+      <div id="eklentiler">
+        <div class="ekBaslik">🎉 Eklentiler <small>(oda sahibi seçer)</small></div>
+        <label><input type="checkbox" data-ek="fasulye" checked> 🫘 Fasulye <small>gaz full</small></label>
+        <label><input type="checkbox" data-ek="biber" checked> 🌶️ Acı biber <small>turbo</small></label>
+        <label><input type="checkbox" data-ek="lahana" checked> 🥬 Lahana <small>yeşil sis</small></label>
+        <label><input type="checkbox" data-ek="gazoz" checked> 🥤 Gazoz <small>geğirti, geri gider</small></label>
+        <label><input type="checkbox" data-ek="kombo" checked> 💥 Kombo <small>hep beraber = süper patlama</small></label>
+        <label><input type="checkbox" data-ek="ordek" checked> 🦆 Ördek sürüsü</label>
+        <label><input type="checkbox" data-ek="balik" checked> 🐟 Zıplayan balık</label>
+        <label><input type="checkbox" data-ek="marti" checked> 🐦 Martılar</label>
+        <label><input type="checkbox" data-ek="tikac" checked> 🍾 Dev tıkaç</label>
       </div>
       <p id="ayarOzet" class="durum"></p>
       <div class="satir">
@@ -93,15 +107,20 @@
       <button id="sesBtn" title="Oyun sesi">🔊</button>
       <button id="cikBtn" title="Oyundan çık">🚪</button>
     </div>
+    <div id="emojiler"><button data-e="0" title="1">🤢</button><button data-e="1" title="2">😂</button><button data-e="2" title="3">😤</button><button data-e="3" title="4">😛</button></div>
+    <div id="etkiYazi" class="gizli"></div>
     <div id="joystick"><div id="joyTopuz"></div></div>
     <div id="ipucu" class="serbest">🖱️ Ekrana tıkla: fareyle etrafa bak. ESC fareyi bırakır.</div>
   </div>
+
+  <div id="sis" class="gizli"></div>
 
   <!-- Sonuç -->
   <section id="sonuc" class="ekran gizli">
     <div class="kart">
       <div id="sonucBaslik" class="baslik">KAZANDINIZ!</div>
       <ol id="sonucSira" class="sira"></ol>
+      <div id="unvanlar"></div>
       <div class="satir">
         <button id="lobiyeBtn">↩ Bekleme odası</button>
         <button id="tekrarBtn" class="ana">🔁 Tekrar yarış</button>

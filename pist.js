@@ -55,7 +55,7 @@ const Pist = (() => {
   function endeks(sx) { let i = 0; while (i < N - 1 && P[i].s < sx) i++; return i; }
 
   // Engeller (herkeste aynı): 360° dönen kütük salıncakları, taş slalomu, girdaplar
-  const SALINCAKLAR = [], KAYALAR = [], GIRDAPLAR = [];
+  const SALINCAKLAR = [], KAYALAR = [], GIRDAPLAR = [], TIKACLAR = [], ORDEKLER = [];
   const yakin = (sx, liste, m) => liste.some(o => Math.abs(P[o.i ?? o].s - sx) < m);
   // Salıncak: nehrin üstünde enine bir dingil; kütük onun etrafında tam tur döner
   for (let sx = 120, j = 0; sx < L - 50; sx += 105, j++) {
@@ -71,9 +71,26 @@ const Pist = (() => {
     const i = endeks(sx), p = P[i];
     GIRDAPLAR.push({ x: p.x, z: p.z, y: p.y, r: 3.4, i });
   }
+  // Dev tıkaç: nehri tıkayan koca mantar. Düz bir yerde durur; hep beraber osurup TIKAC_YOL kadar
+  // yukarı itince fırlayıp gider (bir süre sonra yerine döner)
+  const TIKAC_YOL = 20;
+  [0.36, 0.7].forEach(oran => {
+    let sx = L * oran;
+    const uygun = x => [-6, 0, 8, 16, 24].every(o => P[endeks(x + o)].egim < 0.01) && !yakin(x, KONTROL, 12) && !yakin(x + TIKAC_YOL, KONTROL, 12) && !yakin(x, SALINCAKLAR, 14) && !yakin(x + TIKAC_YOL, SALINCAKLAR, 14) && !yakin(x + TIKAC_YOL / 2, GIRDAPLAR, 18);
+    for (let k = 0; k < 60 && !uygun(sx); k++) sx += 4;
+    TIKACLAR.push({ s0: sx, s1: sx + TIKAC_YOL, kal: 1.4 });   // kal: mantarın yarı kalınlığı (nehir boyunca)
+  });
+  const tikacta = x => TIKACLAR.some(t => x > t.s0 - 10 && x < t.s1 + 8);
+  // Ördek sürüleri: anne + 4 yavru, nehrin bir yakasından öbürüne gidip gelir
+  for (let sx = 80, j = 0; sx < L - 40; sx += 140, j++) {
+    let x = sx; for (let k = 0; k < 20 && (yakin(x, KONTROL, 8) || yakin(x, SALINCAKLAR, 10) || tikacta(x)); k++) x += 6;
+    ORDEKLER.push({ i: endeks(x), w: 0.35 + (j % 3) * 0.08, faz: j * 2.1 });
+  }
+  // Ördek sürüsünün o anki yanal yeri (anne)
+  const ordekD = (k, zt) => Math.sin(ORDEKLER[k].faz + ORDEKLER[k].w * zt) * (YARI - 1.5);
   // Taş slalomu: ortada büyük taş (yanından geç) / iki yanda taş (ortadan geç) / bir yanda taş
   for (let sx = 55, j = 0; sx < L - 30; sx += 30, j++) {
-    if (yakin(sx, KONTROL, 10) || yakin(sx, SALINCAKLAR, 11) || yakin(sx, GIRDAPLAR, 9)) continue;
+    if (yakin(sx, KONTROL, 10) || yakin(sx, SALINCAKLAR, 11) || yakin(sx, GIRDAPLAR, 9) || tikacta(sx) || yakin(sx, ORDEKLER, 7)) continue;
     const i = endeks(sx), p = P[i], ekle = (d, r) => KAYALAR.push({ x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, r, i });
     const tip = j % 3;
     if (tip === 0) ekle(0, 1.1);
@@ -136,6 +153,6 @@ const Pist = (() => {
     return { x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, yaw: Math.atan2(p.tx, p.tz), i: Math.min(N - 1, i + 2) };
   }
 
-  return { YARI, R0, KAT_R, KAT_Y, GOL_Y, P, N, L, korkuluk, KONTROL, BITIS, KAYALAR, GIRDAPLAR, SALINCAKLAR, kutuk, bul, inis, akinti, baslangic, kontrolYeri, endeks, yukseklik, yaricap };
+  return { YARI, R0, KAT_R, KAT_Y, GOL_Y, P, N, L, korkuluk, KONTROL, BITIS, KAYALAR, GIRDAPLAR, SALINCAKLAR, kutuk, TIKACLAR, ORDEKLER, ordekD, bul, inis, akinti, baslangic, kontrolYeri, endeks, yukseklik, yaricap };
 })();
 if (typeof module !== 'undefined') module.exports = Pist;

@@ -30,7 +30,7 @@ const Sahne = (() => {
     gunes.shadow.mapSize.set(1024, 1024);
     Object.assign(gunes.shadow.camera, { left: -25, right: 25, top: 25, bottom: -25, near: 1, far: 140 });
     scene.add(gunes, gunes.target);
-    gokyuzu(); kanal(); nehir(); engeller(); salincaklar(); kemerler(); gol(); bulutlar();
+    gokyuzu(); kanal(); nehir(); engeller(); salincaklar(); kemerler(); gol(); bulutlar(); ordekler(); tikaclar();
     boyut(); addEventListener('resize', boyut);
   }
   function boyut() {
@@ -287,14 +287,33 @@ const Sahne = (() => {
     if (kopukler.length >= HAVUZ) kopukler.shift();
     kopukler.push({ x, y, z, vx, vy, vz, boy, t: 0, omur, suruk, buyu, zemin });
   }
-  // Osuruk bulutu: yeşilimsi, yavaş, şişerek dağılır. (dx,dz) gazın gittiği yön
-  const HAVUZ_GAZ = 400; let gazMesh = null; const gazlar = [];
-  function osuruk(x, y, z, dx, dz) {
-    if (!gazMesh) { gazMesh = new THREE.InstancedMesh(kopukGeo, new THREE.MeshStandardMaterial({ color: 0xa8c84a, roughness: 1, transparent: true, opacity: 0.45, depthWrite: false }), HAVUZ_GAZ); gazMesh.frustumCulled = false; gazMesh.count = 0; gazMesh.renderOrder = 10; scene.add(gazMesh); }   // suyun ÜSTÜNE çizilsin
-    for (let k = 0; k < 2; k++) {
-      if (gazlar.length >= HAVUZ_GAZ) gazlar.shift();
-      const h = 2.2 + Math.random() * 1.8;
-      gazlar.push({ x: x + (Math.random() - 0.5) * 0.15, y, z: z + (Math.random() - 0.5) * 0.15, vx: dx * h + (Math.random() - 0.5) * 1.2, vy: 0.1 + Math.random() * 0.6, vz: dz * h + (Math.random() - 0.5) * 1.2, boy: 0.1 + Math.random() * 0.08, t: 0, omur: 0.6 + Math.random() * 0.4 });
+  // Osuruk bulutu: tür tür renkli (normal yeşil, biberde ateş, lahanada koyu sis, gazozda kabarcık, kutlamada rengarenk)
+  const HAVUZ_GAZ = 700; let gazMesh = null; const gazlar = [];
+  const _renk = new THREE.Color();
+  const GAZ_TUR = {
+    gaz: { renk: () => _renk.setHex(0xa8c84a), boy: 0.1, buyu: 2, omur: 0.6, hiz: 2.2 },
+    ates: { renk: () => _renk.setHSL(0.02 + Math.random() * 0.1, 1, 0.5 + Math.random() * 0.15), boy: 0.09, buyu: 1.6, omur: 0.45, hiz: 4.5 },
+    sis: { renk: () => _renk.setHex(0x4f7a2a), boy: 0.16, buyu: 3.2, omur: 1.3, hiz: 2.6 },
+    kabarcik: { renk: () => _renk.setHex(0xe0f4ff), boy: 0.06, buyu: 1.2, omur: 0.7, hiz: 2.0 },
+    kutlama: { renk: () => _renk.setHSL(Math.random(), 0.9, 0.6), boy: 0.14, buyu: 1.4, omur: 1.4, hiz: 0 },
+  };
+  function gazHazirla() {
+    gazMesh = new THREE.InstancedMesh(kopukGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.55, depthWrite: false }), HAVUZ_GAZ);
+    gazMesh.setColorAt(0, _renk.setHex(0xffffff)); gazMesh.frustumCulled = false; gazMesh.count = 0; gazMesh.renderOrder = 10; scene.add(gazMesh);   // suyun ÜSTÜNE çizilsin
+  }
+  function gazEkle(g) { if (!gazMesh) gazHazirla(); if (gazlar.length >= HAVUZ_GAZ) gazlar.shift(); gazlar.push(g); }
+  function osuruk(x, y, z, dx, dz, tur = 'gaz') {
+    const T = GAZ_TUR[tur] || GAZ_TUR.gaz, adet = tur === 'sis' ? 3 : 2;
+    for (let k = 0; k < adet; k++) {
+      const h = T.hiz * (1 + Math.random() * 0.8);
+      gazEkle({ x: x + (Math.random() - 0.5) * 0.15, y, z: z + (Math.random() - 0.5) * 0.15, vx: dx * h + (Math.random() - 0.5) * 1.2, vy: 0.1 + Math.random() * 0.6, vz: dz * h + (Math.random() - 0.5) * 1.2, boy: T.boy * (1 + Math.random() * 0.8), t: 0, omur: T.omur * (1 + Math.random() * 0.6), buyu: T.buyu, renk: T.renk().getHex() });
+    }
+  }
+  // Havai fişek gibi rengarenk patlama (kutlama, süper patlama)
+  function kutlama(x, y, z, adet = 40, guc = 1) {
+    for (let k = 0; k < adet; k++) {
+      const a = Math.random() * Math.PI * 2, e = Math.random() * 0.9 + 0.3, h = (3 + Math.random() * 4) * guc;
+      gazEkle({ x, y, z, vx: Math.cos(a) * Math.cos(e) * h, vy: Math.sin(e) * h + 3 * guc, vz: Math.sin(a) * Math.cos(e) * h, boy: 0.12 + Math.random() * 0.1, t: 0, omur: 1.1 + Math.random() * 0.7, buyu: 1.4, renk: GAZ_TUR.kutlama.renk().getHex(), yercekimi: true });
     }
   }
   function gazAdim(dt) {
@@ -303,13 +322,161 @@ const Sahne = (() => {
     for (let k = gazlar.length - 1; k >= 0; k--) {
       const f = gazlar[k]; f.t += dt;
       if (f.t > f.omur) { gazlar.splice(k, 1); continue; }
-      f.vx *= 1 - dt * 2.2; f.vz *= 1 - dt * 2.2; f.vy += dt * 0.3;
+      if (f.yercekimi) { f.vy -= 5 * dt; f.vx *= 1 - dt * 0.8; f.vz *= 1 - dt * 0.8; }
+      else { f.vx *= 1 - dt * 2.2; f.vz *= 1 - dt * 2.2; f.vy += dt * 0.3; }
       f.x += f.vx * dt; f.y += f.vy * dt; f.z += f.vz * dt;
-      const b = f.boy * (1 + f.t * 2) * (1 - Math.pow(f.t / f.omur, 4));
-      _m.compose(_p.set(f.x, f.y, f.z), _q, _s.set(b, b, b)); gazMesh.setMatrixAt(n++, _m);
+      const b = f.boy * (1 + f.t * f.buyu) * (1 - Math.pow(f.t / f.omur, 4));
+      _m.compose(_p.set(f.x, f.y, f.z), _q, _s.set(b, b, b)); gazMesh.setMatrixAt(n, _m); gazMesh.setColorAt(n, _renk.setHex(f.renk)); n++;
     }
-    gazMesh.count = n; gazMesh.instanceMatrix.needsUpdate = true;
+    gazMesh.count = n; gazMesh.instanceMatrix.needsUpdate = true; if (gazMesh.instanceColor) gazMesh.instanceColor.needsUpdate = true;
   }
+
+  // ---------- 🫘🌶️🥬🥤 Yiyecekler (suda yüzer, döner) ----------
+  const yiyecekObj = new Map();
+  function yiyecekModel(tur) {
+    const g = new THREE.Group(), m = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5 });
+    if (tur === 'fasulye') {
+      for (let k = 0; k < 3; k++) { const f = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), m(0xb8501a)); f.scale.set(1, 0.7, 1.6); f.position.set((k - 1) * 0.35, 0.25 + (k % 2) * 0.1, 0); f.rotation.y = k; g.add(f); }
+    } else if (tur === 'biber') {
+      const b = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.0, 12), m(0xe02010)); b.rotation.z = Math.PI / 2 + 0.3; b.position.y = 0.4; g.add(b);
+      const sap = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.25, 6), m(0x3a8a2a)); sap.position.set(-0.55, 0.55, 0); sap.rotation.z = 1.2; g.add(sap);
+    } else if (tur === 'lahana') {
+      for (let k = 0; k < 4; k++) { const y = new THREE.Mesh(new THREE.SphereGeometry(0.42 - k * 0.06, 12, 8), m(k % 2 ? 0x8acd4a : 0x6aa83a)); y.position.y = 0.42; y.rotation.set(k, k * 2, 0); y.scale.set(1, 0.85, 1); g.add(y); }
+    } else {
+      const k = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.75, 14), new THREE.MeshStandardMaterial({ color: 0x2a6ae8, metalness: 0.6, roughness: 0.3 })); k.position.y = 0.45; g.add(k);
+      const ust = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.08, 14), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 })); ust.position.y = 0.86; g.add(ust);
+      const s = new THREE.Mesh(new THREE.CylinderGeometry(0.255, 0.255, 0.25, 14, 1, true), m(0xffffff)); s.position.y = 0.45; g.add(s);
+    }
+    const halka = new THREE.Mesh(new THREE.RingGeometry(0.75, 0.9, 24), new THREE.MeshBasicMaterial({ color: 0xffe14a, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false }));
+    halka.rotation.x = -Math.PI / 2; halka.position.y = 0.04; g.add(halka);
+    g.userData.halka = halka;
+    return g;
+  }
+  function yiyecekleriCiz(liste) {
+    const var_ = new Set(liste.map(y => y.id));
+    yiyecekObj.forEach((g, id) => { if (!var_.has(id)) { scene.remove(g); yiyecekObj.delete(id); } });
+    liste.forEach(y => { if (yiyecekObj.has(y.id)) return; const g = yiyecekModel(y.tur); g.position.set(y.x, y.y, y.z); g.userData.y0 = y.y; scene.add(g); yiyecekObj.set(y.id, g); });
+  }
+  function yiyecekTemizle() { yiyecekObj.forEach(g => scene.remove(g)); yiyecekObj.clear(); }
+
+  // ---------- 🦆 Ördek sürüleri ----------
+  const ordekObj = [];
+  function ordekYap(yavru) {
+    const g = new THREE.Group(), sari = new THREE.MeshStandardMaterial({ color: yavru ? 0xffe14a : 0xf4f0e0, roughness: 0.6 });
+    const govde = new THREE.Mesh(new THREE.SphereGeometry(yavru ? 0.22 : 0.4, 12, 8), sari); govde.scale.set(1, 0.75, 1.3); govde.position.y = yavru ? 0.12 : 0.2; g.add(govde);
+    const bas = new THREE.Mesh(new THREE.SphereGeometry(yavru ? 0.14 : 0.22, 10, 8), yavru ? sari : new THREE.MeshStandardMaterial({ color: 0x2a7a3a })); bas.position.set(0, yavru ? 0.32 : 0.55, yavru ? 0.2 : 0.38); g.add(bas);
+    const gaga = new THREE.Mesh(new THREE.ConeGeometry(yavru ? 0.06 : 0.09, yavru ? 0.14 : 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xff8a1a })); gaga.rotation.x = Math.PI / 2; gaga.position.set(0, yavru ? 0.3 : 0.52, yavru ? 0.36 : 0.62); g.add(gaga);
+    return g;
+  }
+  function ordekler() {
+    P.ORDEKLER.forEach(() => { const grup = []; for (let k = 0; k < 5; k++) { const d = ordekYap(k > 0); scene.add(d); grup.push(d); } ordekObj.push({ grup, gizli: false }); });
+  }
+  function ordekGuncelle(zt, od, acik) {
+    P.ORDEKLER.forEach((O, k) => {
+      const ob = ordekObj[k]; if (!ob) return;
+      const gor = acik && !(od && od[k]);
+      const p = P.P[O.i], w = O.w, yon = Math.sign(Math.cos(O.faz + w * zt)) || 1;
+      ob.grup.forEach((d, j) => {
+        d.visible = gor; if (!gor) return;
+        const dd = P.ordekD(k, zt - j * 0.9), bob = Math.sin(zt * 6 + j) * 0.03;
+        d.position.set(p.x + p.nx * dd - p.tx * j * 0.15, p.y + bob, p.z + p.nz * dd - p.tz * j * 0.15);
+        d.rotation.y = Math.atan2(p.nx * yon, p.nz * yon) + Math.sin(zt * 3 + j) * 0.2;
+      });
+    });
+  }
+  function ordekDagit(x, y, z) {
+    for (let k = 0; k < 20; k++) { const a = Math.random() * Math.PI * 2, h = 2 + Math.random() * 3; kopukAt(x, y + 0.3, z, Math.cos(a) * h, 2 + Math.random() * 3, Math.sin(a) * h, 0.06 + Math.random() * 0.05, 1.0); }
+    sicrama(x, y, z, 0.6);
+  }
+
+  // ---------- 🐟 Zıplayan balık ----------
+  const baliklar = [];
+  function balikAt(x, y, z, hx, hy, hz) {
+    const g = new THREE.Group();
+    const gv = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 8), new THREE.MeshStandardMaterial({ color: 0x5a9ad8, metalness: 0.4, roughness: 0.3 })); gv.scale.set(0.5, 0.8, 1.5); g.add(gv);
+    const ky = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.35, 4), new THREE.MeshStandardMaterial({ color: 0x3a7ab8 })); ky.rotation.x = -Math.PI / 2; ky.position.z = -0.55; g.add(ky);
+    [-1, 1].forEach(s => { const go = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), new THREE.MeshStandardMaterial({ color: 0x111111 })); go.position.set(s * 0.13, 0.08, 0.3); g.add(go); });
+    g.position.set(x, y, z); scene.add(g);
+    baliklar.push({ g, x, y, z, hx: hx + (hx - x) * 0.4, hy, hz: hz + (hz - z) * 0.4, t: 0, sure: 1.1 });
+    sicrama(x, y, z, 0.5);
+  }
+  function balikAdim(dt) {
+    for (let k = baliklar.length - 1; k >= 0; k--) {
+      const b = baliklar[k]; b.t += dt; const u = b.t / b.sure;
+      if (u >= 1) { sicrama(b.g.position.x, b.y, b.g.position.z, 0.4); scene.remove(b.g); baliklar.splice(k, 1); continue; }
+      const x = b.x + (b.hx - b.x) * u, z = b.z + (b.hz - b.z) * u, y = b.y + (b.hy - b.y) * u + Math.sin(u * Math.PI) * 3;
+      b.g.lookAt(x, y + 0.01, z); b.g.position.set(x, y, z); b.g.rotation.z += Math.sin(b.t * 30) * 0.3;
+    }
+  }
+
+  // ---------- 🐦 Martılar: oyuncunun çevresinde dolaşır, osuruk bulutuna girince bayılıp düşer ----------
+  const martilar = [];
+  function martiYap() {
+    const g = new THREE.Group(), b = new THREE.MeshStandardMaterial({ color: 0xffffff }), gri = new THREE.MeshStandardMaterial({ color: 0x9aa0a8 });
+    const gv = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), b); gv.scale.set(0.8, 0.7, 1.6); g.add(gv);
+    const bas = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), b); bas.position.set(0, 0.08, 0.35); g.add(bas);
+    const gaga = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 6), new THREE.MeshStandardMaterial({ color: 0xffb020 })); gaga.rotation.x = Math.PI / 2; gaga.position.set(0, 0.06, 0.5); g.add(gaga);
+    const kanatlar = [-1, 1].map(s => { const k = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.03, 0.28), gri); k.position.set(s * 0.4, 0.05, 0); g.add(k); return k; });
+    g.userData.kanatlar = kanatlar;
+    return g;
+  }
+  function martiGuncelle(dt, merkez, acik) {
+    if (!acik || !merkez) { martilar.forEach(m => { m.g.visible = false; }); return; }
+    if (!martilar.length) for (let k = 0; k < 7; k++) { const g = martiYap(); scene.add(g); martilar.push({ g, aci: k, r: 5 + Math.random() * 7, h: 3 + Math.random() * 3, w: 0.5 + Math.random() * 0.4, baygin: 0, vy: 0, ses: false }); }
+    martilar.forEach(m => {
+      m.g.visible = true;
+      if (m.baygin > 0) {                       // bayıldı: dönerek suya düşer
+        m.baygin -= dt; m.vy -= 9 * dt; m.g.position.y += m.vy * dt; m.g.rotation.z += dt * 6;
+        if (m.g.position.y < merkez.y - 0.2 && !m.su) { m.su = true; sicrama(m.g.position.x, merkez.y, m.g.position.z, 0.4); }
+        if (m.baygin <= 0) { m.su = false; m.g.rotation.z = 0; m.aci += Math.PI; }
+        return;
+      }
+      m.aci += m.w * dt;
+      const x = merkez.x + Math.cos(m.aci) * m.r, z = merkez.z + Math.sin(m.aci) * m.r, y = merkez.y + m.h + Math.sin(m.aci * 3) * 0.4;
+      m.g.position.set(x, y, z); m.g.rotation.y = -m.aci; m.g.rotation.x = 0;
+      const kan = Math.sin(zaman * 10 + m.aci) * 0.5; m.g.userData.kanatlar.forEach((k, j) => { k.rotation.z = (j ? -1 : 1) * kan; });
+      // osuruk bulutuna girdi mi?
+      if (gazlar.some(f => !f.yercekimi && (f.x - x) ** 2 + (f.y - y) ** 2 + (f.z - z) ** 2 < 2.2)) { m.baygin = 4; m.vy = 0; m.yeniBayildi = true; }
+    });
+  }
+  function bayilanMartilar() { const L = martilar.filter(m => m.yeniBayildi); L.forEach(m => { m.yeniBayildi = false; }); return L.map(m => m.g.position); }
+
+  // ---------- 🍾 Dev tıkaç (nehrin enine yatmış koca mantar) ----------
+  const tikacObj = [];
+  function tikaclar() {
+    const mantar = new THREE.MeshStandardMaterial({ color: 0xc89a5a, roughness: 0.95 }), koyu = new THREE.MeshStandardMaterial({ color: 0xa8784a, roughness: 1 });
+    P.TIKACLAR.forEach(T => {
+      const g = new THREE.Group();
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(T.kal, T.kal * 1.08, P.YARI * 2 - 0.3, 20), mantar); c.rotation.z = Math.PI / 2; c.position.y = T.kal * 0.55; c.castShadow = true; g.add(c);
+      [-1, 1].forEach(s => { const u = new THREE.Mesh(new THREE.CircleGeometry(T.kal, 20), koyu); u.position.set(s * (P.YARI - 0.14), T.kal * 0.55, 0); u.rotation.y = s * Math.PI / 2; g.add(u); });
+      for (let k = 0; k < 14; k++) { const n = new THREE.Mesh(new THREE.SphereGeometry(0.08, 5, 4), koyu); const a = Math.random() * Math.PI * 2; n.position.set((Math.random() - 0.5) * (P.YARI * 2 - 1), T.kal * 0.55 + Math.sin(a) * T.kal, Math.cos(a) * T.kal); g.add(n); }
+      const tabela = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: yaziDokusu('HEP BERABER İTİN!', '#a02a10'), side: THREE.DoubleSide }));
+      tabela.position.set(0, T.kal * 1.55 + 0.6, -0.2); tabela.rotation.y = Math.PI; g.add(tabela);   // arkadan gelenler okuyabilsin
+      scene.add(g); tikacObj.push({ g, ucus: null });
+    });
+  }
+  function tikacGuncelle(tc, acik, dt) {
+    P.TIKACLAR.forEach((T, k) => {
+      const ob = tikacObj[k]; if (!ob) return;
+      if (ob.ucus) {                                  // fırladı: dönerek uçup göle düşer
+        const u = ob.ucus; u.t += dt; u.vy -= 13 * dt;
+        ob.g.position.x += u.vx * dt; ob.g.position.y += u.vy * dt; ob.g.position.z += u.vz * dt; ob.g.rotation.x += dt * 5; ob.g.rotation.z += dt * 3;
+        if (ob.g.position.y < P.GOL_Y - 3) ob.ucus = null;
+        return;
+      }
+      const v = tc && tc[k]; ob.g.visible = acik && v && !v[1];
+      if (!ob.g.visible) return;
+      const i = P.endeks(v[0]), p = P.P[i];
+      ob.g.position.set(p.x, p.y, p.z); ob.g.rotation.set(0, Math.atan2(p.tx, p.tz), 0);
+    });
+  }
+  function tikacFirlat(k) {
+    const ob = tikacObj[k]; if (!ob) return;
+    const p = ob.g.position, i = P.endeks(P.TIKACLAR[k].s1), q = P.P[i];
+    ob.ucus = { t: 0, vx: q.nx * 7 + q.tx * 3, vy: 11, vz: q.nz * 7 + q.tz * 3 };
+    kutlama(p.x, p.y + 1, p.z, 30, 0.8); sicrama(p.x, p.y, p.z, 1.5);
+  }
+
   function fiskir(x, y, z, dx, dz, guc) {
     const n = 3 + Math.round(guc * 5);
     for (let k = 0; k < n; k++) {
@@ -364,12 +531,14 @@ const Sahne = (() => {
     if (suMat) suMat.map.offset.y = zaman * 0.35;
     girdaplar.forEach(g => { g.rotation.z = zaman * 2.5; });
     if (hedef) { gunes.position.set(hedef.x + 25, hedef.y + 45, hedef.z + 15); gunes.target.position.set(hedef.x, hedef.y, hedef.z); }
-    efektAdim(dt); gazAdim(dt);
+    efektAdim(dt); gazAdim(dt); balikAdim(dt);
+    yiyecekObj.forEach((g, id) => { g.position.y = g.userData.y0 + Math.sin(zaman * 3 + id) * 0.08; g.rotation.y += dt * 1.5; g.userData.halka.material.opacity = 0.45 + Math.sin(zaman * 5) * 0.25; });
     renderer.render(scene, camera);
   }
 
   return {
-    kur, ciz, tekneYap, kontrolBoya, fiskir, osuruk, sicrama, patlama, halka, kopukAt, salincakGuncelle,
+    kur, ciz, tekneYap, kontrolBoya, fiskir, osuruk, kutlama, sicrama, patlama, halka, kopukAt, salincakGuncelle,
+    yiyecekleriCiz, yiyecekTemizle, ordekGuncelle, ordekDagit, balikAt, martiGuncelle, bayilanMartilar, tikacGuncelle, tikacFirlat,
     TEKNE_RENK, TEKNE_AD, TEKNE_EMOJI,
     get scene() { return scene; }, get camera() { return camera; },
   };
