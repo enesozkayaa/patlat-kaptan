@@ -1,5 +1,5 @@
 // =============================================================
-// Çalkala Kaptan - pist: dağın etrafında dolana dolana YUKARI çıkan nehir.
+// Patlat Kaptan - pist: dağın etrafında dolana dolana YUKARI çıkan nehir.
 // Nehir havada duran bir su kanalıdır (sütunlar taşır), kenarlarında korkuluk yok.
 // Su aşağı akar, tekneler akıntıya karşı tırmanır. Dışarı savrulan bir alt
 // kattaki nehre, içeri düşen ortadaki göle düşer.
@@ -7,9 +7,9 @@
 // =============================================================
 
 const Pist = (() => {
-  const YARI = 4.5;                 // nehrin yarı genişliği (9 m)
-  const R0 = 58;                    // en alttaki halkanın yarıçapı
-  const KAT_R = 11;                 // her halkada yarıçap bu kadar küçülür (alt halka dışarıda kalır)
+  const YARI = 5.5;                 // nehrin yarı genişliği (11 m)
+  const R0 = 66;                    // en alttaki halkanın yarıçapı
+  const KAT_R = 13.5;               // her halkada yarıçap bu kadar küçülür (alt halka dışarıda kalır)
   const KAT_Y = 9;                  // her halkada bu kadar yükselir
   const TUR = 3.25;                 // kaç halka
   const RAMPA = 3;                  // her halkada kaç rampa (her biri KAT_Y/3 m)
@@ -54,16 +54,36 @@ const Pist = (() => {
   const BITIS = endeks(L - 5);
   function endeks(sx) { let i = 0; while (i < N - 1 && P[i].s < sx) i++; return i; }
 
-  // Engeller: kayalar ve girdaplar (herkeste aynı)
-  const KAYALAR = [], GIRDAPLAR = [];
-  for (let sx = 95, j = 0; sx < L - 40; sx += 47, j++) {
-    if (KONTROL.some(c => Math.abs(P[c].s - sx) < 12)) continue;
-    const p = P[endeks(sx)], d = (j % 2 ? 1 : -1) * (1.6 + (j % 3) * 0.6);
-    KAYALAR.push({ x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, r: 0.85 + (j % 2) * 0.25, i: endeks(sx) });
+  // Engeller (herkeste aynı): 360° dönen kütük salıncakları, taş slalomu, girdaplar
+  const SALINCAKLAR = [], KAYALAR = [], GIRDAPLAR = [];
+  const yakin = (sx, liste, m) => liste.some(o => Math.abs(P[o.i ?? o].s - sx) < m);
+  // Salıncak: nehrin üstünde enine bir dingil; kütük onun etrafında tam tur döner
+  for (let sx = 120, j = 0; sx < L - 50; sx += 105, j++) {
+    if (yakin(sx, KONTROL, 14)) sx += 18;
+    // rampaya denk gelmesin (akıntı + kütük çok zor olur)
+    const rampa = x => [-14, -7, 0, 7, 14].some(o => P[endeks(x + o)].egim > 0.015);
+    for (let k = 0; k < 40 && rampa(sx); k++) sx += 3;
+    const i = endeks(sx), p = P[i];
+    SALINCAKLAR.push({ i, x: p.x, z: p.z, y: p.y, tx: p.tx, tz: p.tz, nx: p.nx, nz: p.nz, kol: 3.8, dy: 4.7, w: (Math.PI * 2) / (4.6 + (j % 3) * 0.6) * (j % 2 ? -1 : 1), faz: j * 1.7 });
   }
-  for (let sx = 150; sx < L - 60; sx += 165) {
-    const p = P[endeks(sx)];
-    GIRDAPLAR.push({ x: p.x, z: p.z, y: p.y, r: 3.2, i: endeks(sx) });
+  for (let sx = 175; sx < L - 60; sx += 190) {
+    if (yakin(sx, SALINCAKLAR, 15)) sx += 20;
+    const i = endeks(sx), p = P[i];
+    GIRDAPLAR.push({ x: p.x, z: p.z, y: p.y, r: 3.4, i });
+  }
+  // Taş slalomu: ortada büyük taş (yanından geç) / iki yanda taş (ortadan geç) / bir yanda taş
+  for (let sx = 55, j = 0; sx < L - 30; sx += 30, j++) {
+    if (yakin(sx, KONTROL, 10) || yakin(sx, SALINCAKLAR, 11) || yakin(sx, GIRDAPLAR, 9)) continue;
+    const i = endeks(sx), p = P[i], ekle = (d, r) => KAYALAR.push({ x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, r, i });
+    const tip = j % 3;
+    if (tip === 0) ekle(0, 1.35);
+    else if (tip === 1) { ekle(-3.3, 1.05); ekle(3.3, 1.05); }
+    else ekle((j % 2 ? 1 : -1) * 2.4, 1.2);
+  }
+  // Salıncak kütüğünün o anki yeri: ileri (a) ve yükseklik (h, suya göre)
+  function kutuk(k, zt) {
+    const S = SALINCAKLAR[k], aci = S.faz + S.w * zt;
+    return { aci, a: Math.sin(aci) * S.kol, h: S.dy - Math.cos(aci) * S.kol, va: Math.cos(aci) * S.kol * S.w };
   }
 
   // Bir noktaya en yakın örnek. ipucu verilirse çevresine bakar (hızlı).
@@ -106,16 +126,16 @@ const Pist = (() => {
 
   // Başlangıç yerleri (en fazla 4 tekne)
   function baslangic(no) {
-    const p = P[endeks(no < 2 ? 16 : 9)], d = no % 2 ? 2.2 : -2.2;
+    const p = P[endeks(no < 2 ? 17 : 10)], d = no % 2 ? 2.6 : -2.6;
     return { x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, yaw: Math.atan2(p.tx, p.tz) };
   }
   // Kontrol noktasından yeniden başlama yeri
   function kontrolYeri(c, no = 0) {
     const i = c < 0 ? endeks(12) : KONTROL[c];
-    const p = P[Math.min(N - 1, i + 2)], d = [-2.2, 2.2, 0, -1][no % 4];
+    const p = P[Math.min(N - 1, i + 2)], d = [-2.6, 2.6, 0, -1.3][no % 4];
     return { x: p.x + p.nx * d, z: p.z + p.nz * d, y: p.y, yaw: Math.atan2(p.tx, p.tz), i: Math.min(N - 1, i + 2) };
   }
 
-  return { YARI, R0, KAT_R, KAT_Y, GOL_Y, P, N, L, korkuluk, KONTROL, BITIS, KAYALAR, GIRDAPLAR, bul, inis, akinti, baslangic, kontrolYeri, endeks, yukseklik, yaricap };
+  return { YARI, R0, KAT_R, KAT_Y, GOL_Y, P, N, L, korkuluk, KONTROL, BITIS, KAYALAR, GIRDAPLAR, SALINCAKLAR, kutuk, bul, inis, akinti, baslangic, kontrolYeri, endeks, yukseklik, yaricap };
 })();
 if (typeof module !== 'undefined') module.exports = Pist;

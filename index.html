@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Çalkala Kaptan!</title>
-  <meta name="description" content="Çalkala Kaptan: gazoz şişelerini çalkala, köpükle tekneni it, havada dolana dolana yükselen nehirde zirveye ilk sen çık!">
+  <title>Patlat Kaptan!</title>
+  <meta name="description" content="Patlat Kaptan: basılı tut, osur, tekneni it! Takımınla havada dolana dolana yükselen nehirde kütüklerden ve taşlardan kaçarak zirveye ilk sen çık.">
   <meta name="theme-color" content="#1f6fb8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -21,8 +21,8 @@
   <!-- Giriş -->
   <section id="giris" class="ekran">
     <div class="kart">
-      <div class="baslik">ÇALKALA<br>KAPTAN!</div>
-      <p class="alt">Sırtında dev bir gazoz şişesi var! <b>Çalkala, bırak, fışşş!</b> Köpük arkana fışkırır, tekne ileri gider. Takımınla birlikte havada dolana dolana yükselen nehirde akıntıya karşı tırman, zirveye ilk siz çıkın. Kenarlarda korkuluk yok!</p>
+      <div class="baslik">PATLAT<br>KAPTAN!</div>
+      <p class="alt"><b>Basılı tut, osur, prrrt! 💨</b> Gaz arkadan çıkar, tekne baktığın yöne gider. Takımınla havada dolana dolana yükselen nehirde akıntıya karşı tırman, dönen kütüklerden ve taşlardan kaç, zirveye ilk siz çıkın. Kenarlarda korkuluk yok!</p>
       <label for="adim">Adın</label>
       <input id="adim" maxlength="14" placeholder="Adın" autocomplete="off">
       <button id="odaKurBtn" class="ana">⛵ Oda aç</button>
@@ -36,17 +36,19 @@
         <summary>📖 Nasıl oynanır?</summary>
         <ul>
           <li>2 ile 8 kişi. Herkes bir tekneye biner. Oda sahibi teknede kaç kişi olacağını seçer (4'e 4 iki tekne, 2'şerli dört tekne…).</li>
-          <li>🍾 <b>Çalkala:</b> Tuşu (Boşluk / sol tık / ÇALKALA düğmesi) basılı tut, şişe çalkalanır, basınç dolar. <b>Bırakınca</b> köpük sırtındaki şişeden <b>arkana</b> fışkırır ve tekne <b>baktığın yöne</b> itilir. Ne kadar çalkalarsan o kadar güçlü ve uzun fışkırır.</li>
-          <li>💥 <b>Dikkat:</b> Basınç sınırı aşarsa şişe patlar ve sen tekneden uçarsın!</li>
-          <li>🔄 Teknenin ortasında sıkarsan tekne düz gider. Kenarda sıkarsan döner. Herkes kafasına göre sıkarsa tekne fırıl fırıl döner, anlaşın: “Hep beraber, şimdi!”</li>
-          <li>💦 Köpük arkandakileri iter. Takım arkadaşını yanlışlıkla suya düşürebilirsin. Rakip teknenin yanına geçip ona sıkarsan onu savurursun.</li>
+          <li>💨 <b>Osur:</b> Tuşu (Boşluk / sol tık / OSUR düğmesi) <b>basılı tuttukça</b> osurursun ve tekne <b>baktığın yöne</b> itilir. Bırakınca durur.</li>
+          <li>⛽ <b>Gaz göstergesi:</b> Osurdukça azalır, bırakınca yeniden dolar. Biterse biraz beklemen gerekir, idareli kullan!</li>
+          <li>🔄 Teknenin ortasında osurursan tekne düz gider. Kenarda osurursan döner. Herkes kafasına göre osurursa tekne fırıl fırıl döner, anlaşın: “Hep beraber, şimdi!”</li>
+          <li>😵 Gaz arkandakileri iter. Takım arkadaşını yanlışlıkla suya uçurabilirsin. Rakip teknenin önüne geçip ona osurursan onu geri itersin.</li>
+          <li>🪵 <b>Kütük salıncakları</b> nehrin üstünde tam tur döner. Kütük yukarıdayken geç, çarparsa teknen savrulur ve üstündekiler uçar!</li>
+          <li>🪨 Taşlar: ortada taş varsa sağından ya da solundan, iki yanda taş varsa ortadan geç. Girdaplar tekneni döndürür.</li>
           <li>⚖️ Herkes teknenin bir tarafına toplanırsa tekne yatar ve <b>devrilir</b>.</li>
           <li>🌊 Su aşağı akar, durursan geri sürüklenirsin. Rampalarda akıntı güçlüdür, beraber itin.</li>
           <li>⚠️ Nehir havada duran bir su kanalı, kenarlarında <b>korkuluk yok</b>! Dışarı savrulursan bir alt kattaki nehre düşersin. İçeri ya da en alttan düşen göle düşer ve son kontrol noktasından başlar.</li>
           <li>🏊 Suya düşersen yüzerek teknene dön, yanına gelince otomatik binersin. Çok uzakta kalırsan arkadaşların seni çeker.</li>
           <li>🏁 7 kontrol noktasından geçip zirvedeki bayrağa ilk varan tekne kazanır.</li>
-          <li>Bilgisayar: ekrana tıkla, fareyle bak. WASD tekne üstünde yürü, Boşluk ya da sol tık basılı tut → çalkala, bırak → fışkırt. K mikrofon. ESC fareyi bırakır.</li>
-          <li>Telefon: sol tarafta parmağınla yürü, sağ tarafta kaydırarak bak, ÇALKALA düğmesine basılı tut ve bırak.</li>
+          <li>Bilgisayar: ekrana tıkla, fareyle bak. WASD tekne üstünde yürü, Boşluk ya da sol tık basılı tut → osur. K mikrofon. ESC fareyi bırakır.</li>
+          <li>Telefon: sol tarafta parmağınla yürü, sağ tarafta kaydırarak bak, OSUR düğmesini basılı tut.</li>
           <li>🎤 Oyunda sadece aynı teknedekiler birbirini duyar.</li>
         </ul>
       </details>
@@ -83,8 +85,8 @@
     <div id="akis"></div>
     <div id="buyukYazi"></div>
     <div id="nisan"></div>
-    <div id="basinc"><div id="siseIkon">🍾</div><div id="basincCubuk"><div id="basincDolu"></div><div id="basincSinir"></div></div></div>
-    <button id="calkalaBtn" class="dokunmatik">🍾<span>ÇALKALA</span></button>
+    <div id="basinc"><div id="siseIkon">💨</div><div id="basincCubuk"><div id="basincDolu"></div></div><div id="gazYazi">GAZ</div></div>
+    <button id="osurBtn" class="dokunmatik">💨<span>OSUR</span></button>
     <div id="ustSag">
       <button id="mikBtn" title="Mikrofon (K)">🎤</button>
       <button id="sesBtn" title="Oyun sesi">🔊</button>

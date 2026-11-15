@@ -1,7 +1,7 @@
 // =============================================================
-// Çalkala Kaptan - denizci hayvanlar (penguen, kedi, ördek, kurbağa)
-// Hepsinin başında denizci şapkası, boynunda takım renginde fular,
-// sırtında dev bir gazoz şişesi var (köpük şişenin ağzından ARKAYA fışkırır).
+// Patlat Kaptan - denizci hayvanlar (penguen, kedi, ördek, kurbağa)
+// Hepsinin başında denizci şapkası, boynunda takım renginde fular var.
+// Osurunca öne eğilir, gaz arkadan çıkar ve tekne baktığı yöne itilir.
 // =============================================================
 
 const Hayvan = (() => {
@@ -15,27 +15,13 @@ const Hayvan = (() => {
     ordek: { govde: 0xffd83a, karin: 0xfff4b0, gaga: 0xff8a1a },
     kurbaga: { govde: 0x5ac04a, karin: 0xd8f0a0, gaga: 0xd04a5a },
   };
-  const beyaz = mat(0xffffff), siyah = mat(0x111111), cam = mat(0x2fae5a, { roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.85 });
-  const kapakMat = mat(0xe03a2a, { metalness: 0.4, roughness: 0.4 }), etiket = mat(0xffe14a);
+  const beyaz = mat(0xffffff), siyah = mat(0x111111);
 
   function goz(x, y, z, r = 0.07) {
     const g = new THREE.Group();
     const ak = kure(r, beyaz); g.add(ak);
     const bebek = kure(r * 0.55, siyah); bebek.position.z = r * 0.6; g.add(bebek);
     g.position.set(x, y, z); return g;
-  }
-
-  // Dev gazoz şişesi: sırtta, ağzı aşağı-arkaya bakar
-  function sise() {
-    const g = new THREE.Group();
-    const govde = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.55, 14), cam); govde.castShadow = true; g.add(govde);
-    const omuz = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.17, 0.18, 14), cam); omuz.position.y = -0.36; g.add(omuz);
-    const boyun = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 0.14, 12), cam); boyun.position.y = -0.52; g.add(boyun);
-    const kapak = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.06, 12), kapakMat); kapak.position.y = -0.6; g.add(kapak);
-    const et = new THREE.Mesh(new THREE.CylinderGeometry(0.175, 0.175, 0.2, 14, 1, true), etiket); g.add(et);
-    const kayis = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 16), mat(0x6a3a1a)); kayis.rotation.x = Math.PI / 2; kayis.position.y = 0.1; g.add(kayis);
-    g.userData.kapak = kapak;
-    return g;
   }
 
   function yap(tur, takimRenk) {
@@ -85,39 +71,33 @@ const Hayvan = (() => {
     // Takım renginde fular
     const fular = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.06, 6, 16), mat(takimRenk)); fular.rotation.x = Math.PI / 2; fular.position.y = 0.76; beden.add(fular);
     const ucu = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.18, 4), mat(takimRenk)); ucu.position.set(0, 0.68, 0.22); ucu.rotation.x = Math.PI; beden.add(ucu);
-    // Sırttaki şişe: ağzı aşağı ve arkaya
-    const s = sise(); s.position.set(0, 0.62, -0.36); s.rotation.x = -0.75; beden.add(s);
+    // Popo (gazın çıktığı yer) ve kuyruk sokumu yanakları
+    const kic = new THREE.Object3D(); kic.position.set(0, 0.3, -0.42); beden.add(kic);
+    [-1, 1].forEach(s => { const y = kure(0.17, gm); y.position.set(0.12 * s, 0.3, -0.24); beden.add(y); });
 
-    kok.userData = { beden, bas, kollar, ayaklar, sise: s, tur, faz: Math.random() * 10 };
+    kok.userData = { beden, bas, kollar, ayaklar, kic, tur, faz: Math.random() * 10 };
     return kok;
   }
 
-  // Şişenin ağzının dünyadaki yeri ve fışkırma yönü
+  // Popunun dünyadaki yeri (gaz buradan çıkar)
   const _v = typeof THREE !== 'undefined' ? new THREE.Vector3() : null;
-  function agiz(h) {
-    const k = h.userData.sise.userData.kapak;
-    k.getWorldPosition(_v);
-    return _v;
-  }
+  function kic(h) { h.userData.kic.getWorldPosition(_v); return _v; }
 
-  // Animasyon: yuruyor (0..1), calkala (0..1 basınç), yuzuyor, fiskiriyor
+  // Animasyon: yuruyor (0..1), yuzuyor, osuruyor
   function canlandir(h, dt, d) {
     const u = h.userData; u.faz += dt * (d.yuzuyor ? 6 : 10) * (0.3 + d.yuruyor);
-    const b = u.beden;
-    b.position.y = d.yuzuyor ? -0.45 : Math.abs(Math.sin(u.faz)) * 0.08 * d.yuruyor;
-    b.rotation.x = d.yuzuyor ? 0.9 : (d.fiskiriyor ? 0.25 : 0);
-    b.rotation.z = Math.sin(u.faz) * 0.08 * d.yuruyor;
+    const b = u.beden, os = d.osuruyor;
+    const tit = os ? Math.sin(performance.now() / 25) * 0.05 : 0;
+    b.position.y = d.yuzuyor ? -0.45 : (os ? -0.08 + tit : Math.abs(Math.sin(u.faz)) * 0.08 * d.yuruyor);
+    const hedefX = d.yuzuyor ? 0.9 : (os ? 0.45 : 0);
+    b.rotation.x += (hedefX - b.rotation.x) * Math.min(1, dt * 12);
+    b.rotation.z = Math.sin(u.faz) * 0.08 * d.yuruyor + tit;
     u.ayaklar.forEach((a, j) => { a.position.z = 0.06 + Math.sin(u.faz + j * Math.PI) * 0.1 * d.yuruyor; });
     if (d.yuzuyor) u.kollar.forEach((k, j) => { k.rotation.x = Math.sin(u.faz * 1.3 + j * Math.PI) * 1.4; });
-    else if (d.calkala > 0) u.kollar.forEach((k, j) => { k.rotation.x = -1.2 + Math.sin(u.faz * 4 + j) * 0.4; });
-    else u.kollar.forEach(k => { k.rotation.x *= 0.85; });
-    // Çalkalarken şişe titrer, basınç arttıkça şişer
-    const s = u.sise, c = d.calkala || 0;
-    const tit = c > 0 ? Math.sin(performance.now() / (c > 0.85 ? 18 : 35)) * (0.08 + c * 0.15) : 0;
-    s.rotation.z = tit; s.rotation.x = -0.75 + tit * 0.5;
-    const sis = 1 + Math.max(0, c - 0.6) * 0.5; s.scale.set(sis, 1 + Math.max(0, c - 0.6) * 0.2, sis);
-    s.visible = !d.sisesiz;
+    else if (os) u.kollar.forEach((k, j) => { k.rotation.x = -0.6; k.rotation.z = (j ? -1 : 1) * (0.9 + tit * 4); });   // kollar yanda, sıkıyor :)
+    else u.kollar.forEach((k, j) => { k.rotation.x *= 0.85; k.rotation.z += ((j ? 0.4 : -0.4) - k.rotation.z) * 0.2; });
+    u.bas.rotation.x = os ? -0.35 : 0;   // osururken başı yukarı, gözler kocaman
   }
 
-  return { TURLER, AD, yap, canlandir, agiz };
+  return { TURLER, AD, yap, canlandir, kic };
 })();

@@ -1,10 +1,10 @@
 // =============================================================
-// Çalkala Kaptan - oyun sesleri (dosya yok, tarayıcı kendisi üretir). Sesli sohbet ayrı (ag.js).
+// Patlat Kaptan - oyun sesleri (dosya yok, tarayıcı kendisi üretir). Sesli sohbet ayrı (ag.js).
 // =============================================================
 
 const Ses = (() => {
   let acik = true;
-  try { acik = localStorage.getItem('ck.ses') !== '0'; } catch (e) { }
+  try { acik = localStorage.getItem('pk.ses') !== '0'; } catch (e) { }
   const al = () => (typeof Ag !== 'undefined' ? Ag.ctxAl() : null);
   function ton(frek, sure, tip = 'sine', ses = 0.15, gecikme = 0, kayma = 0) {
     const c = al(); if (!c || !acik || ses < 0.003) return;
@@ -24,9 +24,41 @@ const Ses = (() => {
     if (sonFiltre) f.frequency.exponentialRampToValueAtTime(sonFiltre, c.currentTime + gecikme + sure);
     s.connect(f).connect(g).connect(c.destination); s.start(c.currentTime + gecikme);
   }
+  // Osuruk: basılı tuttukça süren, tonu titreyen bir 'prrrrt'. anahtar başına bir tane.
+  const aktif = new Map();
+  let gurultuTampon = null;
+  function osurukBasla(anahtar, ses = 1) {
+    const c = al(); if (!c || !acik || ses < 0.02 || aktif.has(anahtar)) return;
+    const t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 75 + Math.random() * 45;
+    const lfo = c.createOscillator(); lfo.frequency.value = 10 + Math.random() * 9;
+    const lg = c.createGain(); lg.gain.value = 22; lfo.connect(lg).connect(o.frequency);
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 480; f.Q.value = 5;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.28 * ses, t + 0.03);
+    if (!gurultuTampon) { const n = c.sampleRate; gurultuTampon = c.createBuffer(1, n, n); const v = gurultuTampon.getChannelData(0); for (let i = 0; i < n; i++) v[i] = Math.random() * 2 - 1; }
+    const nz = c.createBufferSource(); nz.buffer = gurultuTampon; nz.loop = true;
+    const nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 260; nf.Q.value = 1.2;
+    const ng = c.createGain(); ng.gain.value = 0.5;
+    o.connect(f).connect(g); nz.connect(nf).connect(ng).connect(g); g.connect(c.destination);
+    o.start(t); lfo.start(t); nz.start(t);
+    // ton ve titreşim rastgele kaysın (komik olsun)
+    const zaman = setInterval(() => { const tt = c.currentTime; o.frequency.setTargetAtTime(60 + Math.random() * 80, tt, 0.06); lfo.frequency.setTargetAtTime(7 + Math.random() * 16, tt, 0.05); }, 130);
+    aktif.set(anahtar, { o, lfo, nz, g, zaman });
+  }
+  function osurukBitir(anahtar) {
+    const a = aktif.get(anahtar); if (!a) return;
+    aktif.delete(anahtar); clearInterval(a.zaman);
+    const c = al(); const t = c ? c.currentTime : 0;
+    try { a.o.frequency.setTargetAtTime(45, t, 0.05); a.g.gain.setTargetAtTime(0.0001, t + 0.05, 0.04); } catch (e) { }
+    setTimeout(() => { try { a.o.stop(); a.lfo.stop(); a.nz.stop(); a.g.disconnect(); } catch (e) { } }, 350);
+  }
+  function osurukHepsiBitir() { [...aktif.keys()].forEach(osurukBitir); }
+
   return {
+    osurukBasla, osurukBitir, osurukHepsiBitir,
+    pirt() { ton(110, 0.09, 'sawtooth', 0.12, 0, -40); ton(90, 0.07, 'sawtooth', 0.1, 0.11, -30); },
     get acik() { return acik; },
-    degistir() { acik = !acik; try { localStorage.setItem('ck.ses', acik ? '1' : '0'); } catch (e) { } return acik; },
+    degistir() { acik = !acik; if (!acik) osurukHepsiBitir(); try { localStorage.setItem('pk.ses', acik ? '1' : '0'); } catch (e) { } return acik; },
     baslat() { al(); },
     // Çalkalama tıkırtısı (basınca göre incelir)
     calkala(b) { gurultu(0.06, 0.12 + b * 0.15, 900 + b * 2500, 'bandpass'); ton(220 + b * 500, 0.05, 'triangle', 0.025); },

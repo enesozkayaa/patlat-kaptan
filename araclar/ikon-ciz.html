@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Çalkala Kaptan - uygulama simgesi. Adres sonuna ?boyut=512 yazılır.
+  Patlat Kaptan - uygulama simgesi. Adres sonuna ?boyut=512 yazılır.
   PNG için: msedge --headless=new --user-data-dir=<geçici klasör> --hide-scrollbars --window-size=512,512 --screenshot=ikonlar/ikon-512.png "file:///.../araclar/ikon-ciz.html?boyut=512"
 -->
 <html>
@@ -22,9 +22,10 @@
   g.fillStyle = su; g.fillRect(0, 330, 512, 182);
   g.strokeStyle = '#ffffff88'; g.lineWidth = 6; g.lineCap = 'round';
   for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(30 + i * 85, 370 + (i % 2) * 40); g.lineTo(80 + i * 85, 370 + (i % 2) * 40); g.stroke(); }
-  // Köpük (sola fışkırıyor)
-  g.fillStyle = '#fff';
-  [[150, 250, 34], [110, 265, 30], [72, 285, 27], [40, 300, 24], [125, 228, 22], [85, 240, 18], [55, 255, 15], [175, 238, 24]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+  // Osuruk bulutu (arkadan sola)
+  [[200, 318, 30], [158, 300, 36], [112, 284, 40], [66, 268, 42], [140, 262, 26], [92, 240, 24], [44, 228, 22], [180, 280, 22]].forEach(([x, y, r], i) => { g.fillStyle = i % 2 ? '#b8d860' : '#9ac840'; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); });
+  g.strokeStyle = '#6a8a20'; g.lineWidth = 6; g.lineCap = 'round';
+  [[60, 330], [100, 345], [30, 300]].forEach(([x, y]) => { g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 10, y - 12, x + 20, y); g.stroke(); });
   // Tekne (yuvarlak leğen)
   g.fillStyle = '#b07a40'; g.beginPath(); g.ellipse(300, 380, 150, 46, 0, 0, Math.PI); g.lineTo(450, 350); g.ellipse(300, 350, 150, 40, 0, 0, Math.PI, true); g.fill();
   g.fillStyle = '#8a5a2a'; g.beginPath(); g.ellipse(300, 350, 142, 34, 0, 0, 7); g.fill();
@@ -39,14 +40,6 @@
   // Şapka
   g.fillStyle = '#fff'; g.beginPath(); g.ellipse(300, 158, 50, 13, -0.15, 0, 7); g.fill(); g.fillRect(266, 128, 68, 30);
   g.fillStyle = '#1f3a8a'; g.fillRect(266, 146, 68, 9);
-  // Sırttaki gazoz şişesi (ağzı sola-aşağı)
-  g.save(); g.translate(235, 262); g.rotate(1.7);
-  g.fillStyle = '#2fae5a'; g.fillRect(-22, -60, 44, 80);
-  g.beginPath(); g.moveTo(-22, 20); g.lineTo(-9, 45); g.lineTo(9, 45); g.lineTo(22, 20); g.fill();
-  g.fillRect(-8, 45, 16, 18);
-  g.fillStyle = '#ffe14a'; g.fillRect(-22, -30, 44, 24);
-  g.fillStyle = '#e03a2a'; g.fillRect(-10, 62, 20, 8);
-  g.restore();
   // Fular
   g.fillStyle = '#e8483a'; g.beginPath(); g.ellipse(300, 245, 46, 12, 0, 0, 7); g.fill();
 </script>
