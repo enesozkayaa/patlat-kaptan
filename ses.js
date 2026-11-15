@@ -34,7 +34,7 @@ const Ses = (() => {
     let faz = 0, f = 60, hedefF = 60, sayac = 0, genlik = 1, bosluk = 0, yavas = 0, yavasHiz = 4 + rnd() * 4;
     let ince = 0;   // ara sıra ince ıslık gibi yükselen kısım
     for (let i = 0; i < n; i++) {
-      if (--sayac <= 0) { hedefF = 38 + rnd() * 70 + (rnd() < 0.12 ? 60 : 0); sayac = sr * (0.04 + rnd() * 0.18); ince = rnd() < 0.08 ? 1 : 0; }
+      if (--sayac <= 0) { hedefF = 60 + rnd() * 85 + (rnd() < 0.15 ? 80 : 0); sayac = sr * (0.04 + rnd() * 0.18); ince = rnd() < 0.08 ? 1 : 0; }
       f += (hedefF - f) * 0.0009;
       yavas += yavasHiz / sr;
       faz += (f * (1 + ince * 0.6)) / sr;
@@ -44,10 +44,11 @@ const Ses = (() => {
         if (bosluk > 0) bosluk--; else if (rnd() < 0.035) bosluk = 1 + Math.floor(rnd() * 3);   // kısa kesilmeler: pırt-pırt
       }
       const x = faz;
-      const darbe = Math.exp(-x * 7) * (1 - Math.exp(-x * 90));          // dudak açılıp kapanıyor
-      const hava = (rnd() * 2 - 1) * 0.35 * Math.exp(-x * 3.5);           // ıslak hava
+      // dudak sertçe açılıp kapanıyor + ikinci küçük çırpma (cırtlak 'brrrt')
+      const darbe = Math.exp(-x * 13) * (1 - Math.exp(-x * 260)) + 0.45 * Math.exp(-Math.pow((x - 0.45) * 22, 2));
+      const hava = (rnd() * 2 - 1) * 0.28 * Math.exp(-x * 2);             // hava hışırtısı
       const zarf = 0.75 + 0.25 * Math.sin(yavas * Math.PI * 2);
-      v[i] = bosluk > 0 ? (rnd() * 2 - 1) * 0.04 : (darbe * 1.6 - 0.35 + hava) * genlik * zarf;
+      v[i] = bosluk > 0 ? (rnd() * 2 - 1) * 0.04 : (darbe * 1.5 - 0.3 + hava) * genlik * zarf;
     }
     // uçları yumuşat (döngüde tık sesi olmasın)
     const k = Math.floor(sr * 0.01); for (let i = 0; i < k; i++) { v[i] *= i / k; v[n - 1 - i] *= i / k; }
@@ -58,14 +59,16 @@ const Ses = (() => {
     if (!tamponlar) tamponlar = [7, 911, 4242].map(t => tamponUret(c, t));
     const t = c.currentTime;
     const kay = c.createBufferSource(); kay.buffer = tamponlar[Math.floor(Math.random() * tamponlar.length)]; kay.loop = true;
-    kay.playbackRate.value = 0.8 + Math.random() * 0.4;
-    const alt = c.createBiquadFilter(); alt.type = 'lowpass'; alt.frequency.value = 1100; alt.Q.value = 0.7;
-    const gov = c.createBiquadFilter(); gov.type = 'peaking'; gov.frequency.value = 170; gov.gain.value = 7; gov.Q.value = 1.1;
-    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5 * ses, t + 0.012);
-    kay.connect(alt).connect(gov).connect(g).connect(c.destination);
+    kay.playbackRate.value = 0.95 + Math.random() * 0.35;
+    const ust = c.createBiquadFilter(); ust.type = 'lowpass'; ust.frequency.value = 5200; ust.Q.value = 0.5;      // boğuk olmasın: üst sesler açık
+    const kalin = c.createBiquadFilter(); kalin.type = 'highpass'; kalin.frequency.value = 85; kalin.Q.value = 0.7; // uğultuyu kes
+    const viz = c.createBiquadFilter(); viz.type = 'peaking'; viz.frequency.value = 520; viz.gain.value = 6; viz.Q.value = 1.0; // 'brrr' titreşimi öne
+    const cirt = c.createBiquadFilter(); cirt.type = 'peaking'; cirt.frequency.value = 1600; cirt.gain.value = 3; cirt.Q.value = 1.2;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42 * ses, t + 0.01);
+    kay.connect(kalin).connect(viz).connect(cirt).connect(ust).connect(g).connect(c.destination);
     kay.start(t, Math.random() * 3.5);
     // tonu ara ara hafifçe kaydır (her osuruk biraz farklı)
-    const zaman = setInterval(() => { try { kay.playbackRate.setTargetAtTime(0.75 + Math.random() * 0.5, c.currentTime, 0.15); } catch (e) { } }, 350);
+    const zaman = setInterval(() => { try { kay.playbackRate.setTargetAtTime(0.9 + Math.random() * 0.45, c.currentTime, 0.12); } catch (e) { } }, 350);
     aktif.set(anahtar, { kay, g, zaman, ses });
   }
   function osurukBitir(anahtar) {
@@ -74,11 +77,11 @@ const Ses = (() => {
     const c = al(); if (!c) return; const t = c.currentTime;
     try {
       a.kay.playbackRate.cancelScheduledValues(t); a.kay.playbackRate.setValueAtTime(a.kay.playbackRate.value, t);
-      a.kay.playbackRate.linearRampToValueAtTime(0.45, t + 0.16);                  // sönerken ton düşer: pfff
+      a.kay.playbackRate.linearRampToValueAtTime(0.6, t + 0.14);                   // sönerken ton düşer: pfff
       a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(a.g.gain.value, t);
       a.g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
     } catch (e) { }
-    gurultu(0.22, 0.12 * a.ses, 900, 'bandpass', 0.02, 300);                       // son hava
+    gurultu(0.2, 0.14 * a.ses, 2200, 'bandpass', 0.02, 700);                       // son hava
     setTimeout(() => { try { a.kay.stop(); a.g.disconnect(); } catch (e) { } }, 300);
   }
   function osurukHepsiBitir() { [...aktif.keys()].forEach(osurukBitir); }
